@@ -1,21 +1,25 @@
-import { Client } from 'fb-watchman';
-import config from './default.config'
+const { Client } = require('fb-watchman');
+const deepMerge = require('deepmerge');
+const systemConfig = require('./configuration');
 
 const client = new Client();
 const channelId = 'quantum-channel';
 
-async function quantum(config, onMessage) {
+async function watchProject(userConfig) {
+  const config = deepMerge(systemConfig, userConfig);
   try {
     await check();
     const { watch, relative_path } = await watchSource(config.local.path);
-    await subscribe(watch, { relative_root: relative_path });
-    register(onMessage);
-
+    
+    let watchmanConf = config.watchman.subscribe || {};
+    if (relative_path) {
+      watchmanConf.relative_root = relative_path;
+    }
+    await subscribe(watch, watchmanConf);
     return {
-      end: function() {
-        client.end();
-      },
-      unsubscribe: unsubscribe.bind(this, watch)
+      terminate: () => client.end(),
+      stop: unsubscribe.bind(this, watch),
+      listen: (callback) => register(callback)
     };
   } catch (error) {
     console.error(`[quantum] runs into error: ${error}`);
@@ -68,4 +72,6 @@ function register(callback) {
   });
 }
 
-export default quantum;
+module.exports = {
+  watch: watchProject
+};

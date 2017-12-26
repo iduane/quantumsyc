@@ -4,11 +4,14 @@
   "description": "A two-way file sychronization util",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --require @babel/register"
+    "test": "mocha"
   },
   "author": "iduane@126.com",
   "license": "MIT",
   "dependencies": {
+    "commander": "^2.12.2",
+    "configstore": "^3.1.1",
+    "deepmerge": "^2.0.1",
     "fb-watchman": "~2.0.0",
     "rimraf": "^2.6.2"
   },

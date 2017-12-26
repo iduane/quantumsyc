@@ -1,10 +1,10 @@
-import { expect } from 'chai';
-import sinon from 'sinon';
-import path from 'path';
-import fs from 'fs';
-import rimraf from 'rimraf';
+const { expect } = require('chai');
+const sinon = require('sinon');
+const path = require('path');
+const fs = require('fs');
+const rimraf = require('rimraf');
 
-import quantum from '../src/quantum';
+const monitor = require('../src/monitor');
 
 describe('Smoke', () => {
   const smokeFolder = path.join(__dirname, 'smoke');
@@ -28,15 +28,15 @@ describe('Smoke', () => {
   })
 
   it('should monitor changed file', (cb) => {
-    let end;
+    let terminate;
 
     const onMessage = (resp) => {
-      end();
+      terminate();
       expect(resp.files[0].name).to.eq('a.txt');
       cb();
     };
     (async function() {
-      const stub = await quantum({
+      const stub = await monitor.watch({
         local: {
           path: watchingFolder,
         },
@@ -47,8 +47,9 @@ describe('Smoke', () => {
           // user: 'fuya',
           path: targetFolder
         }
-      }, onMessage);
-      end = stub.end;
+      });
+      terminate = stub.terminate;
+      stub.listen(onMessage);
       fs.writeFileSync(path.join(watchingFolder, 'a.txt'), 'abc');
     })()
   })

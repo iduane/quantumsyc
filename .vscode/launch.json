@@ -8,16 +8,8 @@
             "type": "node",
             "request": "launch",
             "name": "Mocha Tests",
-            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "program": "${workspaceFolder}/node_modules/.bin/_mocha",
             "args": [
-                "--compilers",
-                "js:babel-core/register",
-                "-u",
-                "tdd",
-                "--timeout",
-                "999999",
-                "--colors",
-                "${workspaceFolder}/test"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         },
@@ -26,7 +18,13 @@
             "request": "launch",
             "name": "Launch Program",
             "program": "${workspaceFolder}/src/index.js",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/babel-node"
+            "args": [
+                "sync",
+                "-l",
+                ".",
+                "-r",
+                "local"
+            ]
         }
     ]
 }
