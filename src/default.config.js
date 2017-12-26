@@ -9,5 +9,8 @@ module.exports = {
         subscribe: {
             ignoreDirs: []
         }
+    },
+    sync: {
+        interval: 1000, // ms
     }
 };

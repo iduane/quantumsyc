@@ -3,7 +3,8 @@ const pkg = require('../package.json');
 const onExit = require('signal-exit');
 const path = require('path');
 const monitor = require('./monitor');
-const recorder = require('./recorder');
+const Recorder = require('./recorder');
+const configuration = require('./configuration');
 
 commander
   .version(pkg.version)
@@ -34,5 +35,6 @@ async function startMonitor(options) {
   const stub = await monitor.watch(userConfig)
   termiate = stub.termiate;
 
-  stub.listen(recorder);
+  const config = configuration.getUserConfig(userConfig);
+  stub.listen(new Recorder(config).listener);
 }

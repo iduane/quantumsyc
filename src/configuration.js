@@ -3,6 +3,16 @@ const pkg = require('../package.json');
 const defaultConfig = require('./default.config');
 const deepMerge = require('deepMerge');
 
-const userConfig = new ConfigStore(pkg.name, {}, { globalConfigPath: true });
+const systemConfig = new ConfigStore(pkg.name, {}, { globalConfigPath: true });
 
-module.exports = deepMerge(defaultConfig, userConfig);
+module.exports = {
+  getSystemConfig() {
+    return deepMerge(defaultConfig, systemConfig);
+  },
+
+  getUserConfig(userOptions) {
+    const systemConfig = this.getSystemConfig();
+
+    return deepMerge(systemConfig, userOptions);
+  }
+}

@@ -1,12 +1,12 @@
 const { Client } = require('fb-watchman');
 const deepMerge = require('deepmerge');
-const systemConfig = require('./configuration');
+const configuration = require('./configuration');
 
 const client = new Client();
 const channelId = 'quantum-channel';
 
 async function watchProject(userConfig) {
-  const config = deepMerge(systemConfig, userConfig);
+  const config = configuration.getUserConfig(userConfig);
   try {
     await check();
     const { watch, relative_path } = await watchSource(config.local.path);
@@ -64,9 +64,16 @@ function unsubscribe(watch) {
   });
 }
 
+function shutdown() {
+  return new Promise((resolve, reject) => {
+    client.command(['shutdown'], generateCallback(resolve, reject));
+  });
+}
+
 function register(callback) {
   client.on('subscription', (resp) => {
     if (resp.subscription !== channelId) return;
+    if (resp.is_fresh_instance) return;
 
     callback(resp);
   });
