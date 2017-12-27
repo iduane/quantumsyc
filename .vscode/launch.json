@@ -19,11 +19,7 @@
             "name": "Launch Program",
             "program": "${workspaceFolder}/src/index.js",
             "args": [
-                "sync",
-                "-l",
-                ".",
-                "-r",
-                "local"
+                "sync"
             ]
         }
     ]

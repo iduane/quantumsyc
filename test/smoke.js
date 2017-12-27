@@ -37,16 +37,7 @@ describe('Smoke', () => {
     };
     (async function() {
       const stub = await monitor.watch({
-        local: {
-          path: watchingFolder,
-        },
-        remote: {
-          type: 'ssh',
-          host: 'localhost',
-          // port: '22',
-          // user: 'fuya',
-          path: targetFolder
-        }
+        path: watchingFolder,
       });
       terminate = stub.terminate;
       stub.listen(onMessage);

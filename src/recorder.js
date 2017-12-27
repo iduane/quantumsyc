@@ -33,7 +33,7 @@ const mergeDiff = (queue, incommingResp) => {
   }, queue);
 }
 
-const package = (remoteQueue, localQueue) => {
+const packageChanges = (remoteQueue, localQueue) => {
   return [];
 }
 
@@ -59,7 +59,7 @@ module.exports = class Recorder {
       (async () => {
         this.vehicle.setBusy(true);
         const remoteQeueue = await fetchRemoteRecorder();
-        await this.vehicle.sync(package(remoteQeueue, this.handlingQueue));
+        await this.vehicle.sync(packageChanges(remoteQeueue, this.handlingQueue));
         this.handlingQueue = {};
         this.vehicle.setBusy(false);
       })();
@@ -71,6 +71,7 @@ module.exports = class Recorder {
     this.waitingQueue = mergeDiff(this.waitingQueue, resp);
   }
 
-  fetchRemoteRecorder() {
+  async fetchRemoteRecorder() {
+    return [];
   }
 }
