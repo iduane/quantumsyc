@@ -26,7 +26,7 @@ commander
     const port = options.port || config.port;
 
     monitor = await Monitor.watch({ path: folder });
-    client = new Client({ host, port });
+    client = new Client({ host, port, folder });
     await client.start();
 
     connect(monitor, client);
@@ -43,7 +43,7 @@ commander
     const port = options.port || config.port;
 
     monitor = await Monitor.watch({ path: folder });
-    server = new Server({ port });
+    server = new Server({ port, folder });
     await server.start();
 
     connect(monitor, server);

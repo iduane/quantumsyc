@@ -1,3 +1,6 @@
+var fs = require('fs');
+var path = require('path');
+
 module.exports = {
   mergeChanges(map, increment) {
     let merged = {}, key;
@@ -24,5 +27,17 @@ module.exports = {
     }
 
     return list;
+  },
+
+  mkdirP(dir) {
+    try{
+      fs.mkdirSync(dir);
+    }
+    catch(e){
+      if(e.code === 'ENOENT'){
+        this.mkdirP(path.dirname(dir));
+        this.mkdirP(dir);
+      }
+    }
   }
 }

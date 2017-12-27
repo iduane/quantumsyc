@@ -1,16 +1,13 @@
 const io = require('socket.io');
 const dl = require('delivery');
 const utils = require('./utils');
+const fs = require('fs');
+const path = require('path');
+const Vehicle = require('./vehicle');
 
-async function sendChanges(stub, changes) {
-
-}
-
-module.exports = class Client {
-  constructor({ port }) {
-    this.port = port;
-    this._waitingQueue = {};
-    this._busying = false;
+module.exports = class Client extends Vehicle {
+  constructor({ host, port, folder }) {
+    super({ host, port, folder });
   }
 
   start() {
@@ -22,28 +19,12 @@ module.exports = class Client {
 
         delivery.on('delivery.connect', (delivery) => {
           self.stub = delivery;
+          delivery.on('receive.success',function(file){
+            self.onData(file);
+          });
           resolve();
         });
       })
     });
-  }
-
-  async dispatch(changes) {
-    if (this._busying) {
-      this._waitingQueue = utils.mergeChanges(this._busying);
-    } else {
-      this._busying = true;
-      const changes = this._waitingQueue;
-      this._waitingQueue = {};
-      await sendChanges(this.stub, changes);
-      this._busying = false;
-    }
-  }
-  
-  onData() {
-
-  }
-
-  terminate() {
   }
 }

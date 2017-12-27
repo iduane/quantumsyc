@@ -16,10 +16,21 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "Launch Client",
             "program": "${workspaceFolder}/src/index.js",
             "args": [
                 "sync"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Server",
+            "program": "${workspaceFolder}/src/index.js",
+            "args": [
+                "serve",
+                "--folder",
+                "../quantum-target"
             ]
         }
     ]
