@@ -39,13 +39,11 @@ module.exports = class Client extends Vehicle {
       socket.on('reconnect_attempt', (attemptCount) => {
         console.error('[QuantumSync] try ' + attemptCount + ' reconnecting');
       });
-      socket.on('delete-resource', (lcoalPath) => {
-        self.onDelete(lcoalPath);
-      });
+      self.hook();
       socket.on('connect', () => {
         if (isInitConnected) {
           isInitConnected = false;
-          console.log('[QuantumSync] client connected');
+          console.log('[QuantumSync] client connect to server successful');
         }
         const delivery = dl.listen(socket);
         delivery.connect();

@@ -31,15 +31,17 @@ module.exports = {
   },
 
   mkdirP(dir) {
-    try{
+    let dirs = [];
+    let currDir = dir;
+    while (!fs.existsSync(currDir)) {
+      dirs.push(currDir);
+      currDir = path.dirname(currDir);
+    }
+    dirs = dirs.reverse();
+    dirs.forEach((dir) => {
       fs.mkdirSync(dir);
-    }
-    catch(e){
-      if(e.code === 'ENOENT'){
-        this.mkdirP(path.dirname(dir));
-        this.mkdirP(dir);
-      }
-    }
+    })
+    return dirs;
   },
 
   sleep(durationInMs) {

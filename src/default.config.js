@@ -7,5 +7,14 @@ module.exports = {
 
     },
     port: 12359,
-    host: '127.0.0.1'
+    host: '127.0.0.1',
+    ignores: [
+        '.git/',
+        '.svn/',
+        '.hg/',
+        'CVS/',
+        '.DS_Store',
+        'node_modules/',
+        '.hostory'
+    ]
 };

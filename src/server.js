@@ -24,7 +24,7 @@ module.exports = class Client extends Vehicle {
         }
         self.socket = socket;
         const delivery = dl.listen(socket);
-        console.log('[QuantumSync] client connected.')
+        console.log('[QuantumSync] server accept client connection request.')
         socket.on('disconnect', (reason) => {
           self.stub = null;
           self.socket = null;
@@ -33,9 +33,7 @@ module.exports = class Client extends Vehicle {
         socket.on('error', (e) => {
           console.error('[QuantumSync] client meet eror' + e);
         });
-        socket.on('delete-resource', function(localPath) {
-          self.onDelete(localPath);
-        });
+        self.hook();
         delivery.on('delivery.connect', (delivery) => {  
           self.stub = delivery;
           delivery.on('receive.success',function(file){

@@ -48,20 +48,20 @@ function kill(task) {
 
 describe('Command Line', () => {
   before(() => {
-    if (!fs.existsSync(testFolder)) {
-      fs.mkdirSync(testFolder);
-    }
-    if (!fs.existsSync(clientFolder)) {
-      fs.mkdirSync(clientFolder);
-    }
-    if (!fs.existsSync(serverFolder)) {
-      fs.mkdirSync(serverFolder);
-    }
+    rimraf.sync(testFolder);
+
+    fs.mkdirSync(testFolder);
+    fs.mkdirSync(clientFolder);
+    fs.mkdirSync(serverFolder);
   })
 
   after(() => {
     rimraf.sync(testFolder);
   })
+
+  afterEach(async () => {
+    await sleep(500);
+  });
 
   it ('should sync local file to remote file', async () => {
     const server = await startServer();
@@ -81,6 +81,28 @@ describe('Command Line', () => {
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'b.txt'))).to.true;
+  }).timeout(5000);
+
+  it ('should sync local folder to remote folder', async () => {
+    const server = await startServer();
+    const client = await startClient();
+    fs.mkdirSync(path.join(clientFolder, 'abc'));
+    fs.mkdirSync(path.join(clientFolder, 'abc/def'));
+    await sleep(1000);
+    kill(client);
+    kill(server);
+    expect(fs.existsSync(path.join(serverFolder, 'abc/def'))).to.true;
+  }).timeout(5000);
+
+  it ('should sync remote folder to local folder', async () => {
+    const server = await startServer();
+    const client = await startClient();
+    fs.mkdirSync(path.join(serverFolder, 'abc2'));
+    fs.mkdirSync(path.join(serverFolder, 'abc2/def2'));
+    await sleep(1000);
+    kill(client);
+    kill(server);
+    expect(fs.existsSync(path.join(clientFolder, 'abc2/def2'))).to.true;
   }).timeout(5000);
 
   it ('should re-connnect server if server stop after client connected', async () => {
@@ -113,5 +135,16 @@ describe('Command Line', () => {
     kill(server);
 
     expect(exitCode).to.exist;
+  }).timeout(5000);
+
+  it ('should skip ignore file', async () => {
+    const server = await startServer();
+    const client = await startClient();
+    fs.mkdirSync(path.join(serverFolder, '.git'));
+    fs.writeFileSync(path.join(serverFolder, '.git/ignore.txt'), '123');
+    await sleep(1000);
+    kill(client);
+    kill(server);
+    expect(fs.existsSync(path.join(clientFolder, '.git/ignore.txt'))).to.false;
   }).timeout(5000);
 })
