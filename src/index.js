@@ -60,11 +60,16 @@ onExit(function() {
 });
 
 function fixPath(folder) {
-  if (!folder || !fs.existsSync(path.resolve(folder))) {
+  if (folder) {
+    folder = path.resolve(folder);
+    if (fs.existsSync(folder)) {
+      return folder
+    } else {
+      return path.resolve(process.cwd());
+    }
+  } else {
     return path.resolve(process.cwd());
   }
-
-  return folder;
 }
 
 function connect(monitor, vehicle) {

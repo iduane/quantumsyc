@@ -14,17 +14,36 @@ module.exports = class Client extends Vehicle {
     const self = this;
     return new Promise((resolve, reject) => {
       const listener = io.listen(this.port);
+      console.log('[QuantumSync] server started.')
       listener.sockets.on('connection', (socket) => {
+        if (self.stub) { // only allow one alive client
+          socket.emit('duplicated-clients');
+          socket.disconnect(true);
+          console.log('[QuantumSync] close connect since there is a exiting client connected.')
+          return;
+        }
+        self.socket = socket;
         const delivery = dl.listen(socket);
-
-        delivery.on('delivery.connect', (delivery) => {
+        console.log('[QuantumSync] client connected.')
+        socket.on('disconnect', (reason) => {
+          self.stub = null;
+          self.socket = null;
+          console.log('[QuantumSync] client disconnect, reason: '+ reason);
+        });
+        socket.on('error', (e) => {
+          console.error('[QuantumSync] client meet eror' + e);
+        });
+        socket.on('delete-resource', function(localPath) {
+          self.onDelete(localPath);
+        });
+        delivery.on('delivery.connect', (delivery) => {  
           self.stub = delivery;
           delivery.on('receive.success',function(file){
             self.onData(file);
           });
-          resolve();
         });
       })
+      resolve();
     });
   }
 }

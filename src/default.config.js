@@ -6,6 +6,6 @@ module.exports = {
     subscribe: { // subscribe command options
 
     },
-    port: 12355,
+    port: 12359,
     host: '127.0.0.1'
 };

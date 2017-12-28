@@ -8,8 +8,11 @@
             "type": "node",
             "request": "launch",
             "name": "Mocha Tests",
-            "program": "${workspaceFolder}/node_modules/.bin/mocha",
-            "args": [
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/mocha",
+            "runtimeArgs": [
+                "test/command-line.js",
+                "-g",
+                "should only allow one client per one server"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         },
@@ -19,7 +22,9 @@
             "name": "Launch Client",
             "program": "${workspaceFolder}/src/index.js",
             "args": [
-                "sync"
+                "sync",
+                "--folder",
+                "../quantum-source"
             ]
         },
         {

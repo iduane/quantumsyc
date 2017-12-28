@@ -24,22 +24,40 @@ module.exports = class Vehicle {
       this._busying = true;
       const changes = this._waitingQueue;
       this._waitingQueue = {};
-      await this.sendChanges(this.stub, utils.toList(changes), this.folder);
-      this._busying = false;
+      try {
+        await this.sendChanges(this.socket, this.stub, utils.toList(changes), this.folder);
+      } catch (e) {
+        this._waitingQueue = utils.mergeChanges(changes, this._waitingQueue);
+        console.error("[QuantumSync] got exception when sync changes, "+ e);
+      } finally {
+        this._busying = false;
+      }
     }
   }
 
-  async sendChanges(stub, changes) {
+  async sendChanges(socket, stub, changes) {
+    if (!stub) {
+      console.log('[QuantumSync] received changes, but no clients connected yet');
+      return Promise.reject();
+    }
     return Promise.all(changes.map((descriptor) => {
       return new Promise((resolve, reject) => {
         const fullPath = path.resolve(this.folder, descriptor.name);
-        if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile()) {
+        if (descriptor.op === 'delete') {
+          console.log('[QuantumSync] send remove file request for: ' + descriptor.name);
+          socket.send('delete-resource', descriptor.name);
           resolve();
         } else {
-          stub.send({ name: descriptor.name, path: fullPath });
-          stub.on('send.success', () => {
+          if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile()) {
+            console.log('[QuantumSync] the sync file ' + fullPath + ' is not exit');
             resolve();
-          })
+          } else {
+            console.log('[QuantumSync] send sync file request for: ' + descriptor.name);
+            stub.send({ name: descriptor.name, path: fullPath });
+            stub.on('send.success', () => {
+              resolve();
+            })
+          }
         }
       })
     }));
@@ -47,19 +65,29 @@ module.exports = class Vehicle {
   
   onData(file) {
     const { name } = file;
-    console.log('receive file ' + name);
+    const writePath = path.resolve(this.folder, name);
     const dirname = path.dirname(name);
+
     if (!fs.existsSync(dirname)) {
       utils.mkdirP(dirname);
     }
-    if (fs.existsSync(path.resolve(this.folder, name))) {
-      const exitData = fs.readFileSync(name);
+    if (fs.existsSync(writePath)) {
+      const exitData = fs.readFileSync(writePath);
       if (!exitData.equals(file.buffer)) {
-        fs.writeFileSync(name, file.buffer);
+        this.writeTarget(writePath, file.buffer);
       }
     } else {
-      fs.writeFileSync(name, file.buffer);
+      this.writeTarget(writePath, file.buffer);
     }
+  }
+
+  onDelete(localPath) {
+    
+  }
+
+  writeTarget(path, buffer) {
+    console.log('[QuantumSync] write file to ' + path);
+    fs.writeFileSync(path, buffer);
   }
 
   terminate() {

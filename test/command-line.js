@@ -1,58 +1,117 @@
-// const { expect } = require('chai');
-// const sinon = require('sinon');
-// const path = require('path');
-// const rimraf = require('rimraf');
-// const fs = require('fs');
+const { setTimeout } = require('timers');
+const path = require('path');
+const fs = require('fs');
+const rimraf = require('rimraf');
+const { spawn } = require('child_process');
+const { expect } = require('chai');
+const { sleep } = require('../src/utils');
+const commandPath = path.resolve(__dirname, '../src/index.js');
+const testFolder = path.join(__dirname, 'command-line');
+const clientFolder = path.join(__dirname, 'command-line', 'local');
+const serverFolder = path.join(__dirname, 'command-line', 'server');
 
-// const monitor = require('../src/monitor');
-// const entry = require('../src/index');
+function onData(data) {
+  console.log(data.toString());
+}
 
-// describe('Command Line', () => {
-//   const smokeFolder = path.join(__dirname, 'smoke');
-//   const watchingFolder = path.join(__dirname, 'smoke', 'local');
-//   const targetFolder = path.join(__dirname, 'smoke', 'remote');
+function startServer() {
+  const resolved = false;
+  return new Promise((resolve, reject) => {
+    const server = spawn('node', [
+      commandPath, 'serve', '--folder', serverFolder]);
+    server.stdout.on('data', onData);
+    server.stderr.on('data', onData);
+    setTimeout(() => {
+      resolve(server);
+    }, 1000);
+  })
+}
 
-//   before(() => {
-//     if (!fs.existsSync(smokeFolder)) {
-//       fs.mkdirSync(smokeFolder);
-//     }
-//     if (!fs.existsSync(watchingFolder)) {
-//       fs.mkdirSync(watchingFolder);
-//     }
-//     if (!fs.existsSync(targetFolder)) {
-//       fs.mkdirSync(targetFolder);
-//     }
-//   })
+function startClient() {
+  const resolved = false;
+  return new Promise((resolve, reject) => {
+    const client = spawn('node', [
+      commandPath, 'sync', '--folder', clientFolder]);
+    client.stdout.on('data', onData);
+    client.stderr.on('data', onData);
+    setTimeout(() => {
+      resolve(client);
+    }, 1000);
+  })
+}
 
-//   after(() => {
-//     rimraf.sync(smokeFolder);
-//   })
+function kill(task) {
+  try {
+    task.kill('SIGKILL');
+  } catch (e) {}
+}
 
-//   let spy, terminate;
-//   beforeEach(() => {
-//     spy = sinon.spy(monitor, 'watch');
-//   })
-//   afterEach(() => {
-//     monitor.watch.restore();
-//     terminate();
-//   })
-//   it ('should accept local path as input param', async () => {
-//     const options = {
-//       local: {
-//         path: watchingFolder,
-//       },
-//       remote: {
-//         type: 'ssh',
-//         host: 'localhost',
-//         // port: '22',
-//         // user: 'fuya',
-//         path: targetFolder
-//       }
-//     };
-//     const stub = await monitor.watch(options);
-//     terminate = stub.terminate;
-//     expect(spy.called).to.true;
-//     expect(spy.callCount).to.eq(1);
-//     expect(spy.args[0][0]).eql(options);
-//   })
-// })
+describe('Command Line', () => {
+  before(() => {
+    if (!fs.existsSync(testFolder)) {
+      fs.mkdirSync(testFolder);
+    }
+    if (!fs.existsSync(clientFolder)) {
+      fs.mkdirSync(clientFolder);
+    }
+    if (!fs.existsSync(serverFolder)) {
+      fs.mkdirSync(serverFolder);
+    }
+  })
+
+  after(() => {
+    rimraf.sync(testFolder);
+  })
+
+  it ('should sync local file to remote file', async () => {
+    const server = await startServer();
+    const client = await startClient();
+    fs.writeFileSync(path.join(clientFolder, 'a.txt'), '123');
+    await sleep(1000);
+    kill(client);
+    kill(server);
+    expect(fs.existsSync(path.join(serverFolder, 'a.txt'))).to.true;
+  }).timeout(5000);
+
+  it ('should sync remote file to local file', async () => {
+    const server = await startServer();
+    const client = await startClient();
+    fs.writeFileSync(path.join(serverFolder, 'b.txt'), '123');
+    await sleep(1000);
+    kill(client);
+    kill(server);
+    expect(fs.existsSync(path.join(clientFolder, 'b.txt'))).to.true;
+  }).timeout(5000);
+
+  it ('should re-connnect server if server stop after client connected', async () => {
+    let server = await startServer();
+    const client = await startClient();
+    kill(server);
+    await sleep(200);
+    let reconnectData;
+    client.stdout.on('data', (data) => {
+      reconnectData = data.toString();
+    });
+    server = await startServer();
+    await sleep(2000);
+    kill(client);
+    kill(server);
+    expect(reconnectData).to.exist;
+    expect(reconnectData.indexOf('reconnected')).to.gt(0);
+  }).timeout(10000);
+
+  it ('should only allow one client per one server', async () => {
+    let server = await startServer();
+    const client = await startClient();
+    const client2 = await startClient();
+    await sleep(500);
+
+    const exitCode = client2.exitCode;
+    
+    kill(client2);
+    kill(client);
+    kill(server);
+
+    expect(exitCode).to.exist;
+  }).timeout(5000);
+})

@@ -6,7 +6,7 @@ const rimraf = require('rimraf');
 
 const monitor = require('../src/monitor');
 
-describe('Smoke', () => {
+describe('Watch Project', () => {
   const smokeFolder = path.join(__dirname, 'smoke');
   const watchingFolder = path.join(__dirname, 'smoke', 'local');
   const targetFolder = path.join(__dirname, 'smoke', 'remote');

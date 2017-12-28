@@ -1,5 +1,6 @@
 var fs = require('fs');
 var path = require('path');
+const { setTimeout } = require('timers');
 
 module.exports = {
   mergeChanges(map, increment) {
@@ -39,5 +40,13 @@ module.exports = {
         this.mkdirP(dir);
       }
     }
+  },
+
+  sleep(durationInMs) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, durationInMs);
+    })
   }
 }
