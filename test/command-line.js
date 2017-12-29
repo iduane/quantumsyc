@@ -112,7 +112,7 @@ describe('Command Line', () => {
     await sleep(200);
     let reconnectData;
     client.stdout.on('data', (data) => {
-      reconnectData = data.toString();
+      reconnectData += data.toString();
     });
     server = await startServer();
     await sleep(2000);
@@ -146,5 +146,17 @@ describe('Command Line', () => {
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, '.git/ignore.txt'))).to.false;
+  }).timeout(5000);
+
+  it ('should two way sync files on client connected', async () => {
+    fs.writeFileSync(path.join(clientFolder, 'a.txt'), '123');
+    fs.writeFileSync(path.join(serverFolder, 'b.txt'), '123');
+    const server = await startServer();
+    const client = await startClient();
+    await sleep(1000);
+    kill(client);
+    kill(server);
+    expect(fs.existsSync(path.join(clientFolder, 'a.txt'))).to.true;
+    expect(fs.existsSync(path.join(serverFolder, 'a.txt'))).to.true;
   }).timeout(5000);
 })

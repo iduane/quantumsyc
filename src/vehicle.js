@@ -18,6 +18,14 @@ module.exports = class Vehicle {
     
   }
 
+  setBusy(isBusy) {
+    this._busying = isBusy;
+  }
+
+  isBusy() {
+    return this._busying;
+  }
+
   hook() {
     const self = this;
     this.socket.on('delete-resource', (lcoalPath) => {
@@ -34,8 +42,8 @@ module.exports = class Vehicle {
     tripSyncChange(changes, this._syncChangeMap, this.folder);
     this._waitingQueue = utils.mergeChanges(this._waitingQueue, changes);
 
-    if (!this._busying) {
-      this._busying = true;
+    if (!this.isBusy()) {
+      this.setBusy(true);
       const changes = this._waitingQueue;
       this._waitingQueue = {};
       try {
@@ -44,7 +52,7 @@ module.exports = class Vehicle {
         this._waitingQueue = utils.mergeChanges(changes, this._waitingQueue);
         console.error("[QuantumSync] got exception when sync changes, "+ e);
       } finally {
-        this._busying = false;
+        this.setBusy(false);
       }
     }
   }

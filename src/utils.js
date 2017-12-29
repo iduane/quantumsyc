@@ -50,5 +50,22 @@ module.exports = {
         resolve();
       }, durationInMs);
     })
+  },
+
+  mergeMap(map1, map2) {
+    map1 = map1 || {};
+    map2 = map2 || {};
+
+    const result = {};
+    let key;
+    [map1, map2].forEach((m) => {
+      for (key in m) {
+        if (m.hasOwnProperty(key)) {
+          result[key] = m[key];
+        }
+      }
+    })
+    
+    return result;
   }
 }

@@ -10,9 +10,9 @@
             "name": "Mocha Tests",
             "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/mocha",
             "runtimeArgs": [
-                "test/command-line.js",
+                // "test/checksum-project.js",
                 "-g",
-                "should sync local file to remote file"
+                "should two way sync files on client connected"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         },
@@ -24,7 +24,9 @@
             "args": [
                 "sync",
                 "--folder",
-                "../quantum-source"
+                "../quantum-source",
+                // "--host",
+                // "testing.io"
             ]
         },
         {

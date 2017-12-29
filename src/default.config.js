@@ -9,12 +9,21 @@ module.exports = {
     port: 12359,
     host: '127.0.0.1',
     ignores: [
-        '.git/',
-        '.svn/',
-        '.hg/',
-        'CVS/',
+        '.git',
+        '.svn',
+        '.hg',
+        'CVS',
         '.DS_Store',
-        'node_modules/',
-        '.hostory'
-    ]
+        'node_modules',
+        '.history',
+        '.swp',
+        '.quantumsync'
+    ],
+    timeout: 1000,
+    syncRules: {
+        // FIXME: add test cases for all rules
+        sameFileConfict: 'checkModifyTime', // 'useServer', 'userClient',
+        fileMissingOnClient: 'downloadToLocal', // 'deleteServer'
+        fileMissingOnSever: 'uploadToServer', // 'deleteLocal'
+    }
 };

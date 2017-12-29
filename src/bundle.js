@@ -23,5 +23,6 @@ module.exports = {
         changes[path] = { op };
         return changes;
       }, {});
+      // FIXME: order changes by folder sequence, add folder first, and delete folder later that its children
   }
 }

@@ -4,6 +4,7 @@ const utils = require('./utils');
 const fs = require('fs');
 const path = require('path');
 const Vehicle = require('./vehicle');
+const checksum = require('./checksum');
 
 module.exports = class Client extends Vehicle {
   constructor({ host, port, folder }) {
@@ -33,6 +34,7 @@ module.exports = class Client extends Vehicle {
         socket.on('error', (e) => {
           console.error('[QuantumSync] client meet eror' + e);
         });
+        self.handeShakeSync();
         self.hook();
         delivery.on('delivery.connect', (delivery) => {  
           self.stub = delivery;
@@ -43,5 +45,29 @@ module.exports = class Client extends Vehicle {
       })
       resolve();
     });
+  }
+
+  handeShakeSync() {
+    this.setBusy(true);
+    const self = this;
+    this.socket.on('handshake-done', () => {
+      self.setBusy(false);
+      console.log('[QuantumSync] handshake sync end');
+    });
+    this.socket.on('pull-changes', async (changes) => {
+      try {
+        await self.sendChanges(self.socket, self.stub, changes, self.folder);
+        self.socket.emit('pull-changes-done');
+      } catch (e) {
+        console.error("[QuantumSync] got exception when sync pull changes, "+ e);
+      }
+    });
+    try {
+      console.log('[QuantumSync] handshake sync start');
+      this.socket.emit('handshake-digest', checksum(this.folder));
+    } catch (e) {
+      console.error('[QuantumSync] handshake sync meet eror' + e);
+      this.setBusy(false);
+    }
   }
 }

@@ -4,10 +4,13 @@ const utils = require('./utils');
 const path = require('path');
 const fs = require('fs');
 const Vehicle = require('./vehicle');
+const handshakeSync = require('./handshake-sync');
+const checksum = require('./checksum');
 
 module.exports = class Client extends Vehicle {
   constructor({ host, port, folder }) {
     super({ host, port, folder });
+    this._handshakeSyncDone = false;
   }
 
   async start() {
@@ -17,6 +20,8 @@ module.exports = class Client extends Vehicle {
       const socket = io.connect('http://' + host + ':' + port);
       
       self.socket = socket;
+
+      self.waitShakeSync();
 
       let isInitConnected = true;
 
@@ -29,6 +34,7 @@ module.exports = class Client extends Vehicle {
       });
       socket.on('disconnect', () => {
         self.stub = null;
+        self._handshakeSyncDone = false;
         console.log('[QuantumSync] client disconnected');
       });
       socket.on('duplicated-clients', () => {
@@ -50,12 +56,37 @@ module.exports = class Client extends Vehicle {
 
         delivery.on('delivery.connect', (delivery) => {
           self.stub = delivery;
+          self.syncShake();
           delivery.on('receive.success',function(file){
             self.onData(file);
           });
           resolve();
         });
       })
+    });
+  }
+
+  async syncShake() {
+    if (!this._handshakeSyncDone && this._remoteDigest) {
+      const localDigest = checksum(this.folder);
+      console.log('[QuantumSync] handshake sync end');
+      await handshakeSync(this, localDigest, this._remoteDigest);
+      this.socket.emit('handshake-done');
+      this.setBusy(false);
+      this._handshakeSyncDone = true;
+      this._remoteDigest = null;
+    }
+  }
+
+  waitShakeSync() {
+    this.setBusy(true);
+
+    const self = this;
+    this.socket.on('handshake-digest', async (remoteDigest) => {
+      self._remoteDigest = remoteDigest;
+      if (self.stub) {
+        await self.syncShake();
+      }
     });
   }
 }
