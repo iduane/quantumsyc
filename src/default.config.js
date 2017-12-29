@@ -6,6 +6,7 @@ module.exports = {
     subscribe: { // subscribe command options
 
     },
+    usePassword: true,
     useSSL: false,
     sslOptions: {
         key: '/path/to/key.pem',

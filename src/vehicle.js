@@ -5,10 +5,11 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = class Vehicle {
-  constructor({ port, folder, host }) {
+  constructor({ port, folder, host, password }) {
     this.port = port;
     this.folder = folder;
     this.host = host;
+    this.password = password;
     this._waitingQueue = {};
     this._syncChangeMap = {};
     this._busying = false;

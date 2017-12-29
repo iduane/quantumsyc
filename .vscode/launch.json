@@ -12,7 +12,7 @@
             "runtimeArgs": [
                 // "test/checksum-project.js",
                 "-g",
-                "should load local config file"
+                "should sync local file to remote file"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         },
@@ -26,7 +26,9 @@
                 "--folder",
                 "../quantum-source",
                 // "--host",
-                // "testing.io"
+                // "testing.io",
+                "--password",
+                "kJc3QyJYdP",
             ]
         },
         {
@@ -37,7 +39,9 @@
             "args": [
                 "serve",
                 "--folder",
-                "../quantum-target"
+                "../quantum-target",
+                "--password",
+                "kJc3QyJYdP",
             ]
         }
     ]

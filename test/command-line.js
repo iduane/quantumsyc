@@ -17,7 +17,7 @@ function onData(data) {
 function startServer() {
   return new Promise((resolve, reject) => {
     const server = spawn('node', [
-      commandPath, 'serve', '--folder', serverFolder]);
+      commandPath, 'serve', '--folder', serverFolder, '--password', '0AxMWhxBeM']);
     server.stdout.on('data', onData);
     server.stderr.on('data', onData);
     setTimeout(() => {
@@ -29,7 +29,7 @@ function startServer() {
 function startClient(logger = () => {}) {
   return new Promise((resolve, reject) => {
     const client = spawn('node', [
-      commandPath, 'sync', '--folder', clientFolder]);
+      commandPath, 'sync', '--folder', clientFolder, '--password', '0AxMWhxBeM']);
     const loggerCB = (data) => {
       onData(data);
       logger(data);

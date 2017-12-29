@@ -9,8 +9,8 @@ const checksum = require('./checksum');
 const systemConfig = require('./system-config');
 
 module.exports = class Client extends Vehicle {
-  constructor({ host, port, folder }) {
-    super({ host, port, folder });
+  constructor({ host, port, folder, password }) {
+    super({ host, port, folder, password });
     this._handshakeSyncDone = false;
   }
 
@@ -48,8 +48,7 @@ module.exports = class Client extends Vehicle {
       });
       socket.on('duplicated-clients', () => {
         console.log('[QuantumSync] there is already a client connected, so close this session');
-        socket.close(true);
-        process.exit(1);
+        self.terminate();
       });
       socket.on('reconnect_attempt', (attemptCount) => {
         console.error('[QuantumSync] try ' + attemptCount + ' reconnecting');
@@ -65,7 +64,7 @@ module.exports = class Client extends Vehicle {
 
         delivery.on('delivery.connect', (delivery) => {
           self.stub = delivery;
-          self.syncShake();
+          self.authorize();
           delivery.on('receive.success',function(file){
             self.onData(file);
           });
@@ -73,6 +72,23 @@ module.exports = class Client extends Vehicle {
         });
       })
     });
+  }
+
+  authorize() {
+    if (systemConfig.getSystemConfig().usePassword) {
+      const self = this;
+      this.socket.on('auth-accept', () => {
+        console.log('[QuantumSync] receive auth successful event');
+        self.syncShake();
+      });
+      this.socket.on('auth-reject', () => {
+        console.error('[QuantumSync] receive authorize fail event');
+        self.terminate();
+      });
+      this.socket.emit('auth', this.password);
+    } else {
+      this.syncShake();
+    }
   }
 
   async syncShake() {
@@ -97,5 +113,12 @@ module.exports = class Client extends Vehicle {
         await self.syncShake();
       }
     });
+  }
+
+  terminate() {
+    if (this.socket) {
+      this.socket.close(true);
+    }
+    process.exit(1);
   }
 }

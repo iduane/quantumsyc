@@ -4,18 +4,24 @@ const dl = require('delivery');
 const utils = require('./utils');
 const fs = require('fs');
 const path = require('path');
+const generator = require('generate-password');
 const Vehicle = require('./vehicle');
 const checksum = require('./checksum');
 const systemConfig = require('./system-config');
 
 module.exports = class Client extends Vehicle {
-  constructor({ host, port, folder }) {
-    super({ host, port, folder });
+  constructor({ host, port, folder, password }) {
+    super({ host, port, folder, password });
   }
 
   start() {
     const self = this;
     return new Promise((resolve, reject) => {
+      const usePassword = systemConfig.getSystemConfig().usePassword;
+      const password = usePassword ? (this.password ? this.password : generator.generate({
+        length: 10,
+        numbers: true
+      })) : '';
       const useSSL = systemConfig.getSystemConfig().useSSL;
       let listener;
       if (useSSL) {
@@ -26,7 +32,9 @@ module.exports = class Client extends Vehicle {
         listener = io.listen(this.port);
       }
       
-      console.log('[QuantumSync] server started, listen port: ' + this.port + (useSSL ? ', with SSL' : ''));
+      console.log('[QuantumSync] server started, listen port: ' + this.port +
+        (useSSL ? ', with SSL' : '') +
+        (usePassword ? (', use password: ' + password) : ''));
       listener.sockets.on('connection', (socket) => {
         if (self.stub) { // only allow one alive client
           socket.emit('duplicated-clients');
@@ -36,7 +44,6 @@ module.exports = class Client extends Vehicle {
         }
         self.socket = socket;
         const delivery = dl.listen(socket);
-        console.log('[QuantumSync] server accept client connection request.')
         socket.on('disconnect', (reason) => {
           self.stub = null;
           self.socket = null;
@@ -45,7 +52,8 @@ module.exports = class Client extends Vehicle {
         socket.on('error', (e) => {
           console.error('[QuantumSync] client meet eror' + e);
         });
-        self.handeShakeSync();
+        this.setBusy(true);
+        self.checkCredential(password);
         self.hook();
         delivery.on('delivery.connect', (delivery) => {  
           self.stub = delivery;
@@ -58,8 +66,28 @@ module.exports = class Client extends Vehicle {
     });
   }
 
+  checkCredential(password) {
+    if (systemConfig.getSystemConfig().usePassword) {
+      const self = this;
+      this.socket.on('auth', (credential) => {
+        if (password === credential) {
+          self.socket.emit('auth-accept');
+          console.log('[QuantumSync] accept client auth request');
+          self.handeShakeSync();
+        } else {
+          self.socket.emit('auth-reject');
+          self.socket.disconnect(true);
+          self.socket = null;
+          self.stub = null;
+          console.error('[QuantumSync] reject client auth request');
+        }
+      });
+    } else {
+      this.handeShakeSync();
+    }
+  }
+
   handeShakeSync() {
-    this.setBusy(true);
     const self = this;
     this.socket.on('handshake-done', () => {
       self.setBusy(false);

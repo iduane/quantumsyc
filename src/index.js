@@ -20,6 +20,7 @@ commander
   .option('-f, --folder [localFolder]', 'folder to sync')
   .option('-h, --host [host]', '远程 Quantum server 地址, e.g. 10.111.3.190')
   .option('-p, --port [port]', 'remote port')
+  .option('-c, --password [password]', 'password if server required one')
   .action(async (options) => {
     const folder = utils.getDefautFolderIfNotExist(options.folder);
     systemConfig.initSystemConfig(folder);
@@ -28,7 +29,7 @@ commander
     const port = options.port || config.port;
 
     monitor = await Monitor.watch({ path: folder });
-    client = new Client({ host, port, folder });
+    client = new Client({ host, port, folder, password: options.password });
     await client.start();
 
     connect(monitor, client);
@@ -39,6 +40,9 @@ commander
   .description('Provide remote service for Quantum synchronization')
   .option('-f, --folder [localFolder]', 'folder to be synced')
   .option('-p, --port [port]', 'exposed port')
+  // FIXME: remove password option from production build
+  // only for testing
+  .option('-c, --password [password]', 'password if server required one')
   .action(async (options) => {
     const folder = utils.getDefautFolderIfNotExist(options.folder);
     systemConfig.initSystemConfig(folder);
@@ -46,7 +50,7 @@ commander
     const port = options.port || config.port;
 
     monitor = await Monitor.watch({ path: folder });
-    server = new Server({ port, folder });
+    server = new Server({ port, folder, password: options.password });
     await server.start();
 
     connect(monitor, server);
