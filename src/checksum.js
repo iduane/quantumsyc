@@ -5,10 +5,9 @@ const ignore = require('ignore');
 const utils = require('./utils');
 const systemConfig = require('./system-config');
 
-const ig = ignore().add(systemConfig.getSystemConfig().ignores);
-
 const walk = function(fullPath, watchFolder) {
   if (typeof watchFolder === 'undefined') watchFolder = fullPath;
+  const ig = ignore().add(systemConfig.getSystemConfig().ignores);
   const state = fs.statSync(fullPath);
   let resouceMap = {};
 

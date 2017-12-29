@@ -27,8 +27,8 @@ describe('Checksum Folder', () => {
     }
     expect(count).to.eq(8);
 
-    const changedFilePath = 'dir1/dir12/file1120.txt';
-    const notChangedFilePath = 'dir1/dir12/file1121.txt';
+    const changedFilePath = path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1120.txt'));
+    const notChangedFilePath = path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1121.txt'));
     fs.writeFileSync(path.resolve(testFolder, changedFilePath), 'file1120 content changed');
 
     const digest2 = checksum(testFolder);

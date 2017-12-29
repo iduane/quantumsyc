@@ -7,6 +7,7 @@ const Monitor = require('./monitor');
 const Client = require('./client');
 const Server = require('./server');
 const Bundle = require('./bundle');
+const utils = require('./utils');
 
 const systemConfig = require('./system-config');
 
@@ -20,7 +21,8 @@ commander
   .option('-h, --host [host]', '远程 Quantum server 地址, e.g. 10.111.3.190')
   .option('-p, --port [port]', 'remote port')
   .action(async (options) => {
-    const folder = fixPath(options.folder);
+    const folder = utils.getDefautFolderIfNotExist(options.folder);
+    systemConfig.initSystemConfig(folder);
     const config = systemConfig.getSystemConfig();
     const host = options.host || config.host;
     const port = options.port || config.port;
@@ -38,7 +40,8 @@ commander
   .option('-f, --folder [localFolder]', 'folder to be synced')
   .option('-p, --port [port]', 'exposed port')
   .action(async (options) => {
-    const folder = fixPath(options.folder);
+    const folder = utils.getDefautFolderIfNotExist(options.folder);
+    systemConfig.initSystemConfig(folder);
     const config = systemConfig.getSystemConfig();
     const port = options.port || config.port;
 
@@ -58,19 +61,6 @@ onExit(function() {
     }
   });
 });
-
-function fixPath(folder) {
-  if (folder) {
-    folder = path.resolve(folder);
-    if (fs.existsSync(folder)) {
-      return folder
-    } else {
-      return path.resolve(process.cwd());
-    }
-  } else {
-    return path.resolve(process.cwd());
-  }
-}
 
 function connect(monitor, vehicle) {
   monitor.listen(function(resp) {

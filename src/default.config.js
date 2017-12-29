@@ -6,6 +6,12 @@ module.exports = {
     subscribe: { // subscribe command options
 
     },
+    useSSL: false,
+    sslOptions: {
+        key: '/path/to/key.pem',
+        cert: '/path/to/cert.pem',
+        // passphrase: '',
+    },
     port: 12359,
     host: '127.0.0.1',
     ignores: [

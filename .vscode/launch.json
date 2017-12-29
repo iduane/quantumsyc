@@ -12,7 +12,7 @@
             "runtimeArgs": [
                 // "test/checksum-project.js",
                 "-g",
-                "should two way sync files on client connected"
+                "should load local config file"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         },

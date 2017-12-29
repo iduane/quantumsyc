@@ -15,7 +15,6 @@ function onData(data) {
 }
 
 function startServer() {
-  const resolved = false;
   return new Promise((resolve, reject) => {
     const server = spawn('node', [
       commandPath, 'serve', '--folder', serverFolder]);
@@ -27,13 +26,16 @@ function startServer() {
   })
 }
 
-function startClient() {
-  const resolved = false;
+function startClient(logger = () => {}) {
   return new Promise((resolve, reject) => {
     const client = spawn('node', [
       commandPath, 'sync', '--folder', clientFolder]);
-    client.stdout.on('data', onData);
-    client.stderr.on('data', onData);
+    const loggerCB = (data) => {
+      onData(data);
+      logger(data);
+    };
+    client.stdout.on('data', loggerCB);
+    client.stderr.on('data', loggerCB);
     setTimeout(() => {
       resolve(client);
     }, 1000);
@@ -158,5 +160,18 @@ describe('Command Line', () => {
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'a.txt'))).to.true;
     expect(fs.existsSync(path.join(serverFolder, 'a.txt'))).to.true;
+  }).timeout(5000);
+
+  it ('should load local config file', async () => {
+    const port = Math.round(Math.random() * 10000);
+    fs.mkdirSync(path.join(clientFolder, '.quantumsync'));
+    fs.writeFileSync(path.join(clientFolder, '.quantumsync/quantumsync.config.json'), `{"port": ${port}}`);
+    let logs = '';
+    const client = await startClient((data) => {
+      logs += data.toString();
+    });
+    await sleep(1000);
+    kill(client);
+    expect(logs.indexOf('' + port)).to.gt(-1);
   }).timeout(5000);
 })

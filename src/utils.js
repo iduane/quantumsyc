@@ -67,5 +67,27 @@ module.exports = {
     })
     
     return result;
+  },
+
+  getDefautFolderIfNotExist(folder) {
+    if (folder) {
+      folder = path.resolve(folder);
+      if (fs.existsSync(folder)) {
+        return folder
+      } else {
+        return path.resolve(process.cwd());
+      }
+    } else {
+      return path.resolve(process.cwd());
+    }
+  },
+
+  getFullPathIfRelativePath(filePath, watchFolder) {
+    if (filePath) {
+      if (!fs.existsSync(filePath)) {
+        filePath = path.resolve(watchFolder, filePath);
+      }
+    }
+    return filePath;
   }
 }

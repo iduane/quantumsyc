@@ -1,9 +1,9 @@
 const systemConfig = require('./system-config');
 const ignore = require('ignore')
-const ig = ignore().add(systemConfig.getSystemConfig().ignores);
 
 module.exports = {
   createStream(resp) {
+    const ig = ignore().add(systemConfig.getSystemConfig().ignores);
     const { files } = resp;
     return files
       .filter(function(descriptor) {

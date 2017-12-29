@@ -1,10 +1,12 @@
 const io = require('socket.io');
+var https = require('https');
 const dl = require('delivery');
 const utils = require('./utils');
 const fs = require('fs');
 const path = require('path');
 const Vehicle = require('./vehicle');
 const checksum = require('./checksum');
+const systemConfig = require('./system-config');
 
 module.exports = class Client extends Vehicle {
   constructor({ host, port, folder }) {
@@ -14,8 +16,17 @@ module.exports = class Client extends Vehicle {
   start() {
     const self = this;
     return new Promise((resolve, reject) => {
-      const listener = io.listen(this.port);
-      console.log('[QuantumSync] server started.')
+      const useSSL = systemConfig.getSystemConfig().useSSL;
+      let listener;
+      if (useSSL) {
+        const app = https.createServer(systemConfig.getSystemConfig().sslOptions);
+        listener = io(app);
+        app.listen(this.port);
+      } else {
+        listener = io.listen(this.port);
+      }
+      
+      console.log('[QuantumSync] server started, listen port: ' + this.port + (useSSL ? ', with SSL' : ''));
       listener.sockets.on('connection', (socket) => {
         if (self.stub) { // only allow one alive client
           socket.emit('duplicated-clients');

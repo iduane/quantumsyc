@@ -2,8 +2,6 @@ const { setTimeout } = require('timers');
 const systemConfig = require('./system-config');
 const path = require('path');
 
-const syncRules = systemConfig.getSystemConfig().syncRules;
-
 function travese(digest, callback) {
   for (let fullPath in digest) {
     if (digest.hasOwnProperty(fullPath)) {
@@ -26,6 +24,8 @@ function getLastestDigestTime(digest) {
 
 function compareDigest(localDigest, remoteDigest, watchFolder) {
   let diff = {}, push = [], pull = [], rmLocal = [], rmRemote = [];
+
+  const syncRules = systemConfig.getSystemConfig().syncRules;
 
   const digestTime1 = getLastestDigestTime(localDigest);
   const digestTime2 = getLastestDigestTime(remoteDigest);

@@ -6,6 +6,7 @@ const fs = require('fs');
 const Vehicle = require('./vehicle');
 const handshakeSync = require('./handshake-sync');
 const checksum = require('./checksum');
+const systemConfig = require('./system-config');
 
 module.exports = class Client extends Vehicle {
   constructor({ host, port, folder }) {
@@ -17,8 +18,16 @@ module.exports = class Client extends Vehicle {
     const { host, port } = this;
     const self = this;
     return new Promise((resolve, reject) => {
-      const socket = io.connect('http://' + host + ':' + port);
-      
+      const useSSL = systemConfig.getSystemConfig().useSSL;
+      const url = (useSSL ? 'https://' : 'http://') + host + ':' + port;
+      const socket = io.connect(url, {
+        secure: useSSL,
+        reconnect: true,
+        rejectUnauthorized: false,
+        // requestCert: useSSL,
+        // agent: false
+      });
+      console.log('[QuantumSync] connect to ' + url + (useSSL ? ' with SSL' : ''));
       self.socket = socket;
 
       self.waitShakeSync();
