@@ -4,7 +4,7 @@
   "description": "A two-way file sychronization util",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
+    "test": "nyc mocha",
     "start": "node ./src/index.js"
   },
   "author": "iduane@126.com",
@@ -27,6 +27,7 @@
     "babel-cli": "~6.26.0",
     "chai": "^4.1.2",
     "mocha": "^4.0.1",
+    "nyc": "^11.4.1",
     "sinon": "^4.1.3"
   }
 }
