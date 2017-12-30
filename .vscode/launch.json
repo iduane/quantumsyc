@@ -28,7 +28,7 @@
                 // "--host",
                 // "testing.io",
                 "--password",
-                "kJc3QyJYdP",
+                "123456",
             ]
         },
         {
@@ -41,7 +41,7 @@
                 "--folder",
                 "../quantum-target",
                 "--password",
-                "kJc3QyJYdP",
+                "123456",
             ]
         }
     ]

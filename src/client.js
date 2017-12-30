@@ -1,5 +1,6 @@
 const io = require('socket.io-client');
 const dl = require('delivery');
+const crypto = require('crypto')
 const utils = require('./utils');
 const path = require('path');
 const fs = require('fs');
@@ -85,7 +86,9 @@ module.exports = class Client extends Vehicle {
         console.error('[QuantumSync] receive authorize fail event');
         self.terminate();
       });
-      this.socket.emit('auth', this.password);
+      const shasum = crypto.createHash('sha1');
+      shasum.update(this.socket.id + (systemConfig.getSystemConfig().secret || '') + this.password);
+      this.socket.emit('auth', shasum.digest('hex'));
     } else {
       this.syncShake();
     }

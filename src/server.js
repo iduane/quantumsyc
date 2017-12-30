@@ -1,6 +1,7 @@
 const io = require('socket.io');
-var https = require('https');
+const https = require('https');
 const dl = require('delivery');
+const crypto = require('crypto')
 const utils = require('./utils');
 const fs = require('fs');
 const path = require('path');
@@ -70,7 +71,9 @@ module.exports = class Client extends Vehicle {
     if (systemConfig.getSystemConfig().usePassword) {
       const self = this;
       this.socket.on('auth', (credential) => {
-        if (password === credential) {
+        const shasum = crypto.createHash('sha1');
+        shasum.update(self.socket.id + (systemConfig.getSystemConfig().secret || '') + password);
+        if (credential === shasum.digest('hex')) {
           self.socket.emit('auth-accept');
           console.log('[QuantumSync] accept client auth request');
           self.handeShakeSync();

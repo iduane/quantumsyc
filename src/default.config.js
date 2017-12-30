@@ -32,5 +32,6 @@ module.exports = {
         sameFileConfict: 'checkModifyTime', // 'useServer', 'userClient',
         fileMissingOnClient: 'downloadToLocal', // 'deleteServer'
         fileMissingOnSever: 'uploadToServer', // 'deleteLocal'
-    }
+    },
+    secret: 'm8@UQOfbN91JvEE0#t&t'
 };
