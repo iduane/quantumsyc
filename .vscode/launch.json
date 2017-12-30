@@ -10,9 +10,9 @@
             "name": "Mocha Tests",
             "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/mocha",
             "runtimeArgs": [
-                // "test/checksum-project.js",
+                // "test/command-line.js",
                 "-g",
-                "should sync local file to remote file"
+                "should sync folder deletion"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         },

@@ -96,70 +96,66 @@ module.exports = class Vehicle {
     }));
   }
   
-  onData(file) {
+  async onData(file) {
     const { name } = file;
     const writePath = path.resolve(this.folder, name);
-    const dirname = path.dirname(name);
 
-    if (!fs.existsSync(dirname)) {
-      utils.mkdirP(dirname);
-    }
-    if (fs.existsSync(writePath)) {
-      const exitData = fs.readFileSync(writePath);
+    if (await utils.exitsResource(writePath)) {
+      const exitData = await utils.readFile(writePath);
       if (!exitData.equals(file.buffer)) {
-        this.writeFile(writePath, file.buffer);
+        await this.writeFile(writePath, file.buffer);
       }
     } else {
-      this.writeFile(writePath, file.buffer);
+      await this.writeFile(writePath, file.buffer);
     }
   }
 
-  onDelete(localPath) {
+  async onDelete(localPath) {
     const deletePath = path.resolve(this.folder, localPath);
-    if (fs.existsSync(deletePath)) {
-      const fileStat = fs.lstatSync(deletePath);
+    if (await utils.exitsResource(deletePath)) {
+      const fileStat = await utils.lstatResource(deletePath);
       if (fileStat.isFile()) {
-        this.deleteFile(deletePath);
+        await this.deleteFile(deletePath);
       } else if (fileStat.isDirectory()) {
-        this.deleteFolder(deletePath)
+        await this.deleteFolder(deletePath)
       }
       
     }
   }
 
-  onAddDir(localPath) {
+  async onAddDir(localPath) {
     const dirPath = path.resolve(this.folder, localPath);
-    if (!fs.existsSync(dirPath)) {
-      this.addFolder(dirPath);
+    if (!await utils.exitsResource(dirPath)) {
+      await this.addFolder(dirPath);
     }
   }
 
-  writeFile(path, buffer) {
+  async writeFile(path, buffer) {
     console.log('[QuantumSync] write file to ' + path);
     
     try {
-      fs.writeFileSync(path, buffer);
+      await utils.writeFile(path, buffer);
     } catch (e) {
       console.log('[QuantumSync] write file to ' + path + ' fail, ' + e);
     }
     this._syncChangeMap[path] = {};
   }
 
-  deleteFile(path) {
+  async deleteFile(path) {
     this._syncChangeMap[path] = {};
-    fs.unlinkSync(path);
+    await utils.deleteFile(path);
   }
 
-  addFolder(path) {
+  async addFolder(path) {
     this._syncChangeMap[path] = {};
-    const addDirs = utils.mkdirP(path);
+    await utils.addFolderP(path);
   }
 
-  deleteFolder(path) {
+  async deleteFolder(path) {
     this._syncChangeMap[path] = {
       op: 'delete'
     };
-    fs.rmdirSync(path);
+    await utils.deleteFolderP(path);
   }
 
   terminate() {

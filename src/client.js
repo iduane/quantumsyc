@@ -66,7 +66,7 @@ module.exports = class Client extends Vehicle {
         delivery.on('delivery.connect', (delivery) => {
           self.stub = delivery;
           self.authorize();
-          delivery.on('receive.success',function(file){
+          delivery.on('receive.success', function(file){
             self.onData(file);
           });
           resolve();

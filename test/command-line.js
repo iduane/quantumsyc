@@ -4,7 +4,7 @@ const fs = require('fs');
 const rimraf = require('rimraf');
 const { spawn } = require('child_process');
 const { expect } = require('chai');
-const { sleep } = require('../src/utils');
+const utils = require('../src/utils');
 const commandPath = path.resolve(__dirname, '../src/index.js');
 const testFolder = path.join(__dirname, 'command-line');
 const clientFolder = path.join(__dirname, 'command-line', 'local');
@@ -22,7 +22,7 @@ function startServer() {
     server.stderr.on('data', onData);
     setTimeout(() => {
       resolve(server);
-    }, 1000);
+    }, 0);
   })
 }
 
@@ -38,7 +38,7 @@ function startClient(logger = () => {}) {
     client.stderr.on('data', loggerCB);
     setTimeout(() => {
       resolve(client);
-    }, 1000);
+    }, 2000);
   })
 }
 
@@ -62,14 +62,14 @@ describe('Command Line', () => {
   })
 
   afterEach(async () => {
-    await sleep(500);
+    await utils.sleep(500);
   });
 
   it ('should sync local file to remote file', async () => {
     const server = await startServer();
     const client = await startClient();
     fs.writeFileSync(path.join(clientFolder, 'a.txt'), '123');
-    await sleep(1000);
+    await utils.sleep(1000);
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(serverFolder, 'a.txt'))).to.true;
@@ -79,7 +79,7 @@ describe('Command Line', () => {
     const server = await startServer();
     const client = await startClient();
     fs.writeFileSync(path.join(serverFolder, 'b.txt'), '123');
-    await sleep(1000);
+    await utils.sleep(1000);
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'b.txt'))).to.true;
@@ -90,7 +90,7 @@ describe('Command Line', () => {
     const client = await startClient();
     fs.mkdirSync(path.join(clientFolder, 'abc'));
     fs.mkdirSync(path.join(clientFolder, 'abc/def'));
-    await sleep(1000);
+    await utils.sleep(1000);
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(serverFolder, 'abc/def'))).to.true;
@@ -101,23 +101,37 @@ describe('Command Line', () => {
     const client = await startClient();
     fs.mkdirSync(path.join(serverFolder, 'abc2'));
     fs.mkdirSync(path.join(serverFolder, 'abc2/def2'));
-    await sleep(1000);
+    await utils.sleep(1000);
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'abc2/def2'))).to.true;
-  }).timeout(5000);
+  }).timeout(10000);
+
+  it ('should sync folder deletion', async () => {
+    const server = await startServer();
+    const client = await startClient();
+    await utils.addFolderP(path.join(serverFolder, 'xxx/a/b/c/d/e'));
+    await utils.sleep(1000);
+    expect(fs.existsSync(path.join(clientFolder, 'xxx/a/b/c/d/e'))).to.true;
+
+    await utils.deleteFolderP(path.join(serverFolder, 'xxx'));
+    await utils.sleep(1000);
+    kill(client);
+    kill(server);
+    expect(fs.existsSync(path.join(clientFolder, 'xxx'))).to.false;
+  }).timeout(10000);
 
   it ('should re-connnect server if server stop after client connected', async () => {
     let server = await startServer();
     const client = await startClient();
     kill(server);
-    await sleep(200);
+    await utils.sleep(200);
     let reconnectData;
     client.stdout.on('data', (data) => {
       reconnectData += data.toString();
     });
     server = await startServer();
-    await sleep(2000);
+    await utils.sleep(2000);
     kill(client);
     kill(server);
     expect(reconnectData).to.exist;
@@ -128,7 +142,7 @@ describe('Command Line', () => {
     let server = await startServer();
     const client = await startClient();
     const client2 = await startClient();
-    await sleep(500);
+    await utils.sleep(500);
 
     const exitCode = client2.exitCode;
     
@@ -144,7 +158,7 @@ describe('Command Line', () => {
     const client = await startClient();
     fs.mkdirSync(path.join(serverFolder, '.git'));
     fs.writeFileSync(path.join(serverFolder, '.git/ignore.txt'), '123');
-    await sleep(1000);
+    await utils.sleep(1000);
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, '.git/ignore.txt'))).to.false;
@@ -155,7 +169,7 @@ describe('Command Line', () => {
     fs.writeFileSync(path.join(serverFolder, 'b.txt'), '123');
     const server = await startServer();
     const client = await startClient();
-    await sleep(1000);
+    await utils.sleep(1000);
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'a.txt'))).to.true;
@@ -170,7 +184,7 @@ describe('Command Line', () => {
     const client = await startClient((data) => {
       logs += data.toString();
     });
-    await sleep(1000);
+    await utils.sleep(1000);
     kill(client);
     expect(logs.indexOf('' + port)).to.gt(-1);
   }).timeout(5000);
