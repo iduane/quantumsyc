@@ -5,6 +5,7 @@ module.exports = {
   createStream(resp) {
     const ig = ignore().add(systemConfig.getSystemConfig().ignores);
     const { files } = resp;
+    const clock = resp.clock;
     return files
       .filter(function(descriptor) {
         return !ig.ignores(descriptor.name);
@@ -20,7 +21,7 @@ module.exports = {
           op = 'delete';
         }
 
-        changes[path] = { op };
+        changes[path] = { op, clock };
         return changes;
       }, {});
       // FIXME: order changes by folder sequence, add folder first, and delete folder later that its children

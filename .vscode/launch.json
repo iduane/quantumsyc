@@ -12,7 +12,7 @@
             "runtimeArgs": [
                 // "test/command-line.js",
                 "-g",
-                "should sync folder deletion"
+                "should handle quick changes"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         },

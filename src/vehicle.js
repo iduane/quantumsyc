@@ -1,18 +1,28 @@
+const { clearTimeout, setTimeout } = require('timers');
 const io = require('socket.io');
 const dl = require('delivery');
 const utils = require('./utils');
 const fs = require('fs');
 const path = require('path');
+const ConflictResolver = require('./conflict-resolver');
 
 module.exports = class Vehicle {
-  constructor({ port, folder, host, password }) {
+  constructor({ name, port, folder, host, password }) {
     this.port = port;
     this.folder = folder;
     this.host = host;
     this.password = password;
-    this._waitingQueue = {};
-    this._syncChangeMap = {};
+    this.name = name;
+    this.confictResolver = new ConflictResolver(folder, this.name);
     this._busying = false;
+    this._receiptWaitingMap = {};
+    this._lockResolver = null;
+    this._unlockResolver = null;
+    this._locked = false;
+
+    setInterval(() => {
+      this.checkReceiptWaintingMap();
+    }, 10000);
   }
 
   start() {
@@ -37,24 +47,111 @@ module.exports = class Vehicle {
       console.log('[QuantumSync] received add folder request for: ' + lcoalPath);
       self.onAddDir(lcoalPath);
     });
+    this.socket.on('receipt', (receipt) => {
+      self.onReceipt(receipt);
+    });
+    this.socket.on('set-lock', () => {
+      self.setLocalLock();
+    });
+    this.socket.on('remove-lock', () => {
+      self.removeLocalLock();
+    });
+    this.socket.on('lock-result', (lockable) => {
+      self.onLockResult(lockable);
+    });
+    this.socket.on('unlock-result', (lockable) => {
+      self.onUnlockResult();
+    });
   }
 
   async dispatch(changes) {
-    tripSyncChange(changes, this._syncChangeMap, this.folder);
-    this._waitingQueue = utils.mergeChanges(this._waitingQueue, changes);
+    this.confictResolver.reduceChanges(changes);
 
     if (!this.isBusy()) {
       this.setBusy(true);
-      const changes = this._waitingQueue;
-      this._waitingQueue = {};
-      try {
-        await this.sendChanges(this.socket, this.stub, utils.toList(changes), this.folder);
-      } catch (e) {
-        this._waitingQueue = utils.mergeChanges(changes, this._waitingQueue);
-        console.error("[QuantumSync] got exception when sync changes, "+ e);
-      } finally {
+      const changes = this.confictResolver.commitChanges();
+      this.confictResolver.emptyChanges();
+      if (changes.length > 0) {
+        const locked = await this.setTargetLock();
+        if (locked) {
+          try {
+            await this.sendChanges(this.socket, this.stub, changes, this.folder);
+          } catch (e) {
+            console.error("[QuantumSync] got exception when sync changes, "+ e);
+          } finally {
+            this.setBusy(false);
+          }
+          await this.removeTargetLock();
+        } else {
+          console.log('[QuantumSync] ' + this.name + ': target is busy, retry sync later');
+          this.delayDispatch(changes);
+          this.setBusy(false);
+        }
+      } else {
         this.setBusy(false);
       }
+    } else {
+      this.delayDispatch(changes);
+    }
+  }
+
+  delayDispatch(changes) {
+    const self = this;
+    if (this._delayerID) {
+      clearTimeout(this._delayerID);
+    }
+    this._delayerID = setTimeout(() => {
+      self._delayerID = null;
+      self.dispatch({});
+    }, Math.round(1000 * (1 + Math.random() / 2)));
+  }
+
+  setLocalLock() {
+    if (this.isBusy()) {
+      this.socket.emit('lock-result', false);
+    } else {
+      this._locked = true;
+      this.socket.emit('lock-result', true);
+    }
+  }
+
+  removeLocalLock() {
+    this._locked = false;
+    this.socket.emit('unlock-result');
+  }
+
+  async setTargetLock() {
+    this._waitingLock = true;
+    this.socket.emit('set-lock');
+    const self = this;
+    const state = await new Promise((resolve) => {
+      self._lockResolver = resolve;
+    });
+
+    return state;
+  }
+
+  async removeTargetLock() {
+    this.socket.emit('remove-lock');
+    const self = this;
+    await new Promise((resolve) => {
+      self._unlockResolver = resolve;
+    });
+    return true;
+  }
+
+  onLockResult(lockable) {
+    this._waitingLock = false;
+    if (this._lockResolver) {
+      this._lockResolver(lockable);
+      this._lockResolver = null;
+    }
+  }
+
+  onUnlockResult() {
+    if (this._unlockResolver) {
+      this._unlockResolver();
+      this._unlockResolver = null;
     }
   }
 
@@ -63,7 +160,9 @@ module.exports = class Vehicle {
       console.log('[QuantumSync] received changes, but no clients connected yet');
       return Promise.reject();
     }
-    return Promise.all(changes.map((descriptor) => {
+    const logName = this.name;
+    const self = this;
+    await Promise.all(changes.map((descriptor) => {
       return new Promise((resolve, reject) => {
         const fullPath = descriptor.fullPath || path.resolve(this.folder, descriptor.name);
         if (descriptor.op === 'delete') {
@@ -77,10 +176,10 @@ module.exports = class Vehicle {
           } else {
             const fileStat = fs.lstatSync(fullPath);
             if (fileStat.isFile()) {
-              console.log('[QuantumSync] send sync file request for: ' + descriptor.name);
+              console.log('[QuantumSync] ' + logName +  ' send sync file request for: ' + descriptor.name);
               stub.send({ name: descriptor.name, path: fullPath });
               stub.on('send.success', () => {
-                resolve();
+                self.waitReceipt(descriptor.name, resolve);
               })
             } else if (fileStat.isDirectory()) {
               console.log('[QuantumSync] send sync folder request for: ' + descriptor.name);
@@ -94,6 +193,33 @@ module.exports = class Vehicle {
         }
       })
     }));
+  }
+
+  async sendReceipt(file) {
+    const { name } = file;
+    this.socket.emit('receipt', { name });
+  }
+
+  async onReceipt({ name }) {
+    const relPath = name;
+    if (this._receiptWaitingMap[relPath]) {
+      this._receiptWaitingMap[relPath].resolve();
+      delete this._receiptWaitingMap[relPath];
+    }
+  }
+
+  waitReceipt(relPath, resolve) {
+    this._receiptWaitingMap[relPath] = { resolve, time: +(new Date()) };
+  }
+
+  checkReceiptWaintingMap() {
+    const currTime = +(new Date());
+    for (let relPath in this._receiptWaitingMap) {
+      if ((currTime - this._receiptWaitingMap[relPath]) > 1000 * 10) {
+        this._receiptWaitingMap[relPath].resolve();
+        delete this._receiptWaitingMap[relPath];
+      }
+    }
   }
   
   async onData(file) {
@@ -119,7 +245,6 @@ module.exports = class Vehicle {
       } else if (fileStat.isDirectory()) {
         await this.deleteFolder(deletePath)
       }
-      
     }
   }
 
@@ -131,45 +256,46 @@ module.exports = class Vehicle {
   }
 
   async writeFile(path, buffer) {
-    console.log('[QuantumSync] write file to ' + path);
+    console.log('[QuantumSync] ' + this.name + ' write file to ' + path);
     
     try {
       await utils.writeFile(path, buffer);
     } catch (e) {
       console.log('[QuantumSync] write file to ' + path + ' fail, ' + e);
     }
-    this._syncChangeMap[path] = {};
+    this.confictResolver.updateCache(path, {
+      status: 'changed',
+      data: buffer,
+      type: 'file'
+    });
   }
 
   async deleteFile(path) {
-    this._syncChangeMap[path] = {};
+    console.log('[QuantumSync] ' + this.name + ' delete file ' + path);
+
     await utils.deleteFile(path);
+    this.confictResolver.updateCache(path, {
+      status: 'deleted',
+      type: 'file',
+    });
   }
 
   async addFolder(path) {
-    this._syncChangeMap[path] = {};
     await utils.addFolderP(path);
+    this.confictResolver.updateCache(path, {
+      status: 'changed',
+      type: 'folder',
+    });
   }
 
   async deleteFolder(path) {
-    this._syncChangeMap[path] = {
-      op: 'delete'
-    };
     await utils.deleteFolderP(path);
+    this.confictResolver.updateCache(path, {
+      status: 'deleted',
+      type: 'folder',
+    });
   }
 
   terminate() {
-  }
-}
-
-function tripSyncChange(incChanges, syncChanges, folder) {
-  for (let localPath in incChanges) {
-    const desc = incChanges[localPath];
-    const fullPath = desc.fullPath || path.resolve(folder, localPath);
-    desc.fullPath = fullPath;
-    if (syncChanges[fullPath]) {
-      delete incChanges[localPath];
-      delete syncChanges[fullPath];
-    }
   }
 }

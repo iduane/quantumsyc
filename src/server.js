@@ -12,7 +12,7 @@ const systemConfig = require('./system-config');
 
 module.exports = class Client extends Vehicle {
   constructor({ host, port, folder, password }) {
-    super({ host, port, folder, password });
+    super({ name: 'server', host, port, folder, password });
   }
 
   start() {
@@ -44,6 +44,7 @@ module.exports = class Client extends Vehicle {
           return;
         }
         self.socket = socket;
+        self.confictResolver.reset();
         const delivery = dl.listen(socket);
         socket.on('disconnect', (reason) => {
           self.stub = null;
@@ -58,8 +59,9 @@ module.exports = class Client extends Vehicle {
         self.hook();
         delivery.on('delivery.connect', (delivery) => {  
           self.stub = delivery;
-          delivery.on('receive.success',function(file){
-            self.onData(file);
+          delivery.on('receive.success', async function(file, extraParams){
+            await self.onData(file);
+            await self.sendReceipt(file, extraParams);
           });
         });
       })
@@ -82,6 +84,7 @@ module.exports = class Client extends Vehicle {
           self.socket.disconnect(true);
           self.socket = null;
           self.stub = null;
+          self._receiptWaitingMap = {};
           console.error('[QuantumSync] reject client auth request');
         }
       });
@@ -92,9 +95,11 @@ module.exports = class Client extends Vehicle {
 
   handeShakeSync() {
     const self = this;
-    this.socket.on('handshake-done', () => {
+    this.socket.on('client-handshake-done', () => {
       self.setBusy(false);
-      console.log('[QuantumSync] handshake sync end');
+      self.socket.emit('server-handshake-done');
+      self.dispatch({});
+      console.log('[QuantumSync] ' + this.name + ' handshake sync end');
     });
     this.socket.on('pull-changes', async (changes) => {
       try {

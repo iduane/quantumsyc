@@ -11,7 +11,7 @@ const systemConfig = require('./system-config');
 
 module.exports = class Client extends Vehicle {
   constructor({ host, port, folder, password }) {
-    super({ host, port, folder, password });
+    super({ name: 'client', host, port, folder, password });
     this._handshakeSyncDone = false;
   }
 
@@ -45,6 +45,7 @@ module.exports = class Client extends Vehicle {
       socket.on('disconnect', () => {
         self.stub = null;
         self._handshakeSyncDone = false;
+        self._receiptWaitingMap = {};
         console.log('[QuantumSync] client disconnected');
       });
       socket.on('duplicated-clients', () => {
@@ -60,14 +61,16 @@ module.exports = class Client extends Vehicle {
           isInitConnected = false;
           console.log('[QuantumSync] client connect to server successful');
         }
+        self.confictResolver.reset();
         const delivery = dl.listen(socket);
         delivery.connect();
 
         delivery.on('delivery.connect', (delivery) => {
           self.stub = delivery;
           self.authorize();
-          delivery.on('receive.success', function(file){
-            self.onData(file);
+          delivery.on('receive.success', async function(file){
+            await self.onData(file);
+            await self.sendReceipt(file);
           });
           resolve();
         });
@@ -97,12 +100,8 @@ module.exports = class Client extends Vehicle {
   async syncShake() {
     if (!this._handshakeSyncDone && this._remoteDigest) {
       const localDigest = checksum(this.folder);
-      console.log('[QuantumSync] handshake sync end');
       await handshakeSync(this, localDigest, this._remoteDigest);
-      this.socket.emit('handshake-done');
-      this.setBusy(false);
-      this._handshakeSyncDone = true;
-      this._remoteDigest = null;
+      this.socket.emit('client-handshake-done');
     }
   }
 
@@ -116,6 +115,24 @@ module.exports = class Client extends Vehicle {
         await self.syncShake();
       }
     });
+
+    this.socket.on('server-handshake-done', async (remoteDigest) => {
+      self.setBusy(false);
+      self._handshakeSyncDone = true;
+      self._remoteDigest = null;
+      console.log('[QuantumSync] ' + this.name + ' handshake sync end');
+      
+      self.dispatch({});
+    });
+  }
+  
+  setLocalLock() {
+    if (this.isBusy() && !this._waitingLock) {
+      this.socket.emit('lock-result', false);
+    } else {
+      this._locked = true;
+      this.socket.emit('lock-result', true);
+    }
   }
 
   terminate() {
