@@ -1,3 +1,8 @@
+#!/usr/bin/env node
+
+require("babel-core/register");
+require("babel-polyfill");
+
 const commander = require('commander');
 const pkg = require('../package.json');
 const onExit = require('signal-exit');
