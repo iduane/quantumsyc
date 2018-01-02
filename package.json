@@ -6,7 +6,8 @@
   "scripts": {
     "test": "nyc mocha",
     "start": "node ./src/index.js",
-    "build": "babel src --out-dir lib"
+    "build": "./build.sh",
+    "build-lib": "babel src --out-dir lib"
   },
   "repository": {
     "type": "git",
