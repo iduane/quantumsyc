@@ -4,6 +4,7 @@ const dl = require('delivery');
 const utils = require('./utils');
 const fs = require('fs');
 const path = require('path');
+const upath = require('upath');
 const ConflictResolver = require('./conflict-resolver');
 
 module.exports = class Vehicle {
@@ -165,9 +166,10 @@ module.exports = class Vehicle {
     await Promise.all(changes.map((descriptor) => {
       return new Promise((resolve, reject) => {
         const fullPath = descriptor.fullPath || path.resolve(this.folder, descriptor.name);
+        const relPath = upath.normalize(descriptor.name);
         if (descriptor.op === 'delete') {
           console.log('[QuantumSync] send remove file request for: ' + descriptor.name);
-          socket.emit('delete-resource', descriptor.name);
+          socket.emit('delete-resource', relPath);
           resolve();
         } else {
           if (!fs.existsSync(fullPath)) {
@@ -177,13 +179,14 @@ module.exports = class Vehicle {
             const fileStat = fs.lstatSync(fullPath);
             if (fileStat.isFile()) {
               console.log('[QuantumSync] ' + logName +  ' send sync file request for: ' + descriptor.name);
-              stub.send({ name: descriptor.name, path: fullPath });
+              
+              stub.send({ name: relPath, path: fullPath });
               stub.on('send.success', () => {
-                self.waitReceipt(descriptor.name, resolve);
+                self.waitReceipt(relPath, resolve);
               })
             } else if (fileStat.isDirectory()) {
               console.log('[QuantumSync] send sync folder request for: ' + descriptor.name);
-              socket.emit('add-folder', descriptor.name);
+              socket.emit('add-folder', relPath);
               resolve();
             } else {
               console.log('[QuantumSync] the sync file type of ' + fullPath + ' is not supported');
@@ -197,7 +200,7 @@ module.exports = class Vehicle {
 
   async sendReceipt(file) {
     const { name } = file;
-    this.socket.emit('receipt', { name });
+    this.socket.emit('receipt', { name: upath.normalize(name) });
   }
 
   async onReceipt({ name }) {

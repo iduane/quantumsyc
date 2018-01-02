@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const utils = require('./utils');
+const upath = require('upath');
 
 let changeMap = {};
 let cache = {};
@@ -74,7 +75,7 @@ module.exports = class ConflictResolve {
   }
 
   updateCache(filePath, desciptor) {
-    const relPath = path.relative(watchedPath, filePath);
+    const relPath = upath.normalize(path.relative(watchedPath, filePath));
     cache[relPath] = desciptor;
 
     this.removeChange(relPath);

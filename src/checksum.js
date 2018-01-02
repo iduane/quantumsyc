@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const ignore = require('ignore');
 const utils = require('./utils');
 const systemConfig = require('./system-config');
+const upath = require('upath');
 
 const walk = function(fullPath, watchFolder) {
   if (typeof watchFolder === 'undefined') watchFolder = fullPath;
@@ -11,10 +12,10 @@ const walk = function(fullPath, watchFolder) {
   const state = fs.statSync(fullPath);
   let resouceMap = {};
 
-  const relativePath = path.relative(watchFolder, fullPath);
+  const relativePath = upath.normalize(path.relative(watchFolder, fullPath));
   if (relativePath === '' || !ig.ignores(relativePath)) {
     if (state.isDirectory()) {
-      if (relativePath !== '') {
+      if (relativePath !== '' && relativePath !== '.') {
         resouceMap[relativePath] = {
           isFolder: true,
           mtime: state.mtime,

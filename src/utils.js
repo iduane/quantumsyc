@@ -76,7 +76,7 @@ module.exports = {
       if (fs.existsSync(folder)) {
         return folder
       } else {
-        return path.resolve(process.cwd());
+        throw new Error('not exits');
       }
     } else {
       return path.resolve(process.cwd());

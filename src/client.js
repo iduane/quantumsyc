@@ -43,7 +43,10 @@ module.exports = class Client extends Vehicle {
         console.log('[QuantumSync] client reconnected');
       });
       socket.on('disconnect', () => {
-        self.stub = null;
+        if (self.stub) {
+          self.stub.pubSub.channels = [];
+          self.stub = null;
+        }
         self._handshakeSyncDone = false;
         self._receiptWaitingMap = {};
         console.log('[QuantumSync] client disconnected');

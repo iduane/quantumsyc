@@ -2,13 +2,14 @@ const { setTimeout } = require('timers');
 const path = require('path');
 const fs = require('fs');
 const rimraf = require('rimraf');
+const mkdirp = require('mkdirp');
 const { spawn } = require('child_process');
 const { expect } = require('chai');
 const utils = require('../src/utils');
 const commandPath = path.resolve(__dirname, '../src/index.js');
-const testFolder = path.join(__dirname, 'command-line');
-const clientFolder = path.join(__dirname, 'command-line', 'local');
-const serverFolder = path.join(__dirname, 'command-line', 'server');
+const testFolder = path.join(__dirname, 'temp/command-line');
+const clientFolder = path.join(__dirname, 'temp/command-line', 'local');
+const serverFolder = path.join(__dirname, 'temp/command-line', 'server');
 
 function onData(data) {
   console.log(data.toString());
@@ -22,7 +23,7 @@ function startServer() {
     server.stderr.on('data', onData);
     setTimeout(() => {
       resolve(server);
-    }, 0);
+    }, 1000);
   })
 }
 
@@ -49,21 +50,18 @@ function kill(task) {
 }
 
 describe('Command Line', () => {
-  before(() => {
+  beforeEach(() => {
     rimraf.sync(testFolder);
+    mkdirp.sync(path.resolve(testFolder))
 
-    fs.mkdirSync(testFolder);
     fs.mkdirSync(clientFolder);
     fs.mkdirSync(serverFolder);
   })
-
-  after(() => {
-    rimraf.sync(testFolder);
-  })
-
+  
   afterEach(async () => {
+    rimraf.sync(testFolder);
     await utils.sleep(500);
-  });
+  })
 
   it ('should sync local file to remote file', async () => {
     const server = await startServer();
@@ -73,7 +71,7 @@ describe('Command Line', () => {
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(serverFolder, 'a.txt'))).to.true;
-  }).timeout(5000);
+  }).timeout(10000);
 
   it ('should sync remote file to local file', async () => {
     const server = await startServer();
@@ -83,7 +81,7 @@ describe('Command Line', () => {
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'b.txt'))).to.true;
-  }).timeout(5000);
+  }).timeout(10000);
 
   it ('should sync local folder to remote folder', async () => {
     const server = await startServer();
@@ -94,7 +92,7 @@ describe('Command Line', () => {
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(serverFolder, 'abc/def'))).to.true;
-  }).timeout(5000);
+  }).timeout(10000);
 
   it ('should sync remote folder to local folder', async () => {
     const server = await startServer();
@@ -131,7 +129,7 @@ describe('Command Line', () => {
       reconnectData += data.toString();
     });
     server = await startServer();
-    await utils.sleep(2000);
+    await utils.sleep(4000);
     kill(client);
     kill(server);
     expect(reconnectData).to.exist;
@@ -151,7 +149,7 @@ describe('Command Line', () => {
     kill(server);
 
     expect(exitCode).to.exist;
-  }).timeout(5000);
+  }).timeout(10000);
 
   it ('should skip ignore file', async () => {
     const server = await startServer();
@@ -162,7 +160,7 @@ describe('Command Line', () => {
     kill(client);
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, '.git/ignore.txt'))).to.false;
-  }).timeout(5000);
+  }).timeout(10000);
 
   it ('should two way sync files on client connected', async () => {
     fs.writeFileSync(path.join(clientFolder, 'a.txt'), '123');
@@ -174,7 +172,7 @@ describe('Command Line', () => {
     kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'a.txt'))).to.true;
     expect(fs.existsSync(path.join(serverFolder, 'a.txt'))).to.true;
-  }).timeout(5000);
+  }).timeout(10000);
 
   it ('should load local config file', async () => {
     const port = Math.round(Math.random() * 10000);
@@ -187,5 +185,5 @@ describe('Command Line', () => {
     await utils.sleep(1000);
     kill(client);
     expect(logs.indexOf('' + port)).to.gt(-1);
-  }).timeout(5000);
+  }).timeout(10000);
 })

@@ -1,14 +1,23 @@
 const path = require('path');
 const fs = require('fs');
 const rimraf = require('rimraf');
+const mkdirp = require('mkdirp');
 const { expect } = require('chai');
 const checksum = require('../src/checksum');
-const testFolder = path.join(__dirname, 'checksum-folder');
+const utils = require('../src/utils');
+
+const testFolder = path.join(__dirname, 'temp/checksum-folder');
 
 describe('Checksum Folder', () => {
-  it ('should checksum all support files and folders', () => {
+  beforeEach(() => {
+    mkdirp.sync(path.resolve(testFolder))
+  })
+  
+  afterEach(() => {
     rimraf.sync(testFolder);
-    fs.mkdirSync(path.resolve(testFolder));
+  })
+
+  it ('should checksum all support files and folders', () => {
     fs.writeFileSync(path.resolve(testFolder, 'file0.txt'), 'file0 content');
     fs.writeFileSync(path.resolve(testFolder, 'file01.txt'), 'file0 content');
     fs.mkdirSync(path.resolve(testFolder, 'dir1'));
@@ -42,8 +51,6 @@ describe('Checksum Folder', () => {
 
     expect(digest1[changedFilePath].digest).not.to.eq(digest2[changedFilePath].digest)
     expect(digest1[notChangedFilePath].digest).to.eq(digest2[notChangedFilePath].digest)
-
-    rimraf.sync(testFolder);
   })
 
   it ('should skip ignore files checksum', () => {
@@ -65,7 +72,5 @@ describe('Checksum Folder', () => {
     expect(count).to.eq(3);
     expect(digest1[path.resolve(testFolder, '.git')]).not.to.exist;
     expect(digest1[path.resolve(testFolder, '.git/file1.txt')]).not.to.exist;
-
-    rimraf.sync(testFolder);
   })
 });

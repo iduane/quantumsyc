@@ -2,18 +2,20 @@ const { expect } = require('chai');
 const path = require('path');
 const fs = require('fs');
 const rimraf = require('rimraf');
+const mkdirp = require('mkdirp');
 const utils = require('../src/utils');
 
-const testFolder = path.join(__dirname, 'utils-test');
+const testFolder = path.join(__dirname, 'temp/utils-test');
 
 describe('Utils', () => {
-  before(() => {
+  beforeEach(() => {
     rimraf.sync(testFolder);
-    fs.mkdirSync(testFolder);
+    mkdirp.sync(path.resolve(testFolder));
   })
-
-  after(() => {
+  
+  afterEach(async () => {
     rimraf.sync(testFolder);
+    await utils.sleep(500);
   })
 
   it ('writeFile', async () => {

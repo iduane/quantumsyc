@@ -3,13 +3,14 @@ const { expect } = require('chai');
 const path = require('path');
 const fs = require('fs');
 const rimraf = require('rimraf');
+const mkdirp = require('mkdirp');
 const utils = require('../src/utils');
 const { spawn } = require('child_process');
 const commandPath = path.resolve(__dirname, '../src/index.js');
 
-const testFolder = path.join(__dirname, 'conflict-test');
-const clientFolder = path.join(__dirname, 'conflict-test', 'local');
-const serverFolder = path.join(__dirname, 'conflict-test', 'server');
+const testFolder = path.join(__dirname, 'temp/conflict-test');
+const clientFolder = path.join(__dirname, 'temp/conflict-test', 'local');
+const serverFolder = path.join(__dirname, 'temp/conflict-test', 'server');
 
 function onData(data) {
   console.log(data.toString());

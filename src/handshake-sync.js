@@ -32,7 +32,7 @@ function compareDigest(localDigest, remoteDigest, watchFolder) {
 
   travese(localDigest, function(localPath1, value1) {
     if (remoteDigest[localPath1]) {
-      if (!value1.digest || remoteDigest[localPath1].digest !== value1.digest) {
+      if (value1.isFile && (!value1.digest || remoteDigest[localPath1].digest !== value1.digest)) {
         if (syncRules.sameFileConfict === 'checkModifyTime') {
           if (value1.mtime > remoteDigest[localPath1].mtime) {
             push.push({

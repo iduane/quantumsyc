@@ -27,7 +27,13 @@ commander
   .option('-p, --port [port]', 'remote port')
   .option('-c, --password [password]', 'password if server required one')
   .action(async (options) => {
-    const folder = utils.getDefautFolderIfNotExist(options.folder);
+    let folder;
+    try {
+      folder = utils.getDefautFolderIfNotExist(options.folder);
+    } catch (e) {
+      console.error('[QuantumSync] the watched folder ' + options.folder + ' is not exits');
+      return;
+    }
     systemConfig.initSystemConfig(folder);
     const config = systemConfig.getSystemConfig();
     const host = options.host || config.host;
@@ -49,7 +55,13 @@ commander
   // only for testing
   .option('-c, --password [password]', 'password if server required one')
   .action(async (options) => {
-    const folder = utils.getDefautFolderIfNotExist(options.folder);
+    let folder;
+    try {
+      folder = utils.getDefautFolderIfNotExist(options.folder);
+    } catch (e) {
+      console.error('[QuantumSync] the watched folder ' + options.folder + ' is not exits');
+      return;
+    }
     systemConfig.initSystemConfig(folder);
     const config = systemConfig.getSystemConfig();
     const port = options.port || config.port;

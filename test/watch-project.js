@@ -3,28 +3,25 @@ const sinon = require('sinon');
 const path = require('path');
 const fs = require('fs');
 const rimraf = require('rimraf');
-
+const mkdirp = require('mkdirp');
 const monitor = require('../src/monitor');
+const utils = require('../src/utils');
 
 describe('Watch Project', () => {
-  const smokeFolder = path.join(__dirname, 'smoke');
-  const watchingFolder = path.join(__dirname, 'smoke', 'local');
-  const targetFolder = path.join(__dirname, 'smoke', 'remote');
+  const smokeFolder = path.join(__dirname, 'temp/smoke');
+  const watchingFolder = path.resolve(smokeFolder, 'local');
+  const targetFolder = path.resolve(smokeFolder, 'remote');
 
-  before(() => {
-    if (!fs.existsSync(smokeFolder)) {
-      fs.mkdirSync(smokeFolder);
-    }
-    if (!fs.existsSync(watchingFolder)) {
-      fs.mkdirSync(watchingFolder);
-    }
-    if (!fs.existsSync(targetFolder)) {
-      fs.mkdirSync(targetFolder);
-    }
-  })
-
-  after(() => {
+  beforeEach(() => {
     rimraf.sync(smokeFolder);
+    mkdirp.sync(smokeFolder);
+    mkdirp.sync(watchingFolder);
+    mkdirp.sync(targetFolder);
+  })
+  
+  afterEach(async () => {
+    rimraf.sync(smokeFolder);
+    await utils.sleep(500);
   })
 
   it('should monitor changed file', (cb) => {
