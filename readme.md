@@ -10,7 +10,7 @@ QuantumSync 用于实现两台电脑之间文件夹的自动双向同步，支�
 
     QuantumSync 基于 Facebook's Watchman 实现文件目录的监控功能。在运行 QuantumSync 之前首先需要在两台同步的电脑上都安装 Watchman 。
     
-    安装方法见 https://facebook.github.io/watchman/docs/install.html
+    安装方法见 https://facebook.github.io/watchman/docs/install.html 。
     
     Linux 上需要编译安装，以下是 Ubuntu 16.04 编译命令。
     

@@ -1,3 +1,4 @@
+const { Buffer } = require('buffer');
 const { setTimeout } = require('timers');
 const path = require('path');
 const fs = require('fs');
@@ -11,16 +12,18 @@ const testFolder = path.join(__dirname, 'temp/command-line');
 const clientFolder = path.join(__dirname, 'temp/command-line', 'local');
 const serverFolder = path.join(__dirname, 'temp/command-line', 'server');
 
-function onData(data) {
-  console.log(data.toString());
+let server, client;
+
+function onData(name) {
+  return (data) => console.log(name + ':' + data.toString());
 }
 
 function startServer() {
   return new Promise((resolve, reject) => {
     const server = spawn('node', [
       commandPath, 'serve', '--folder', serverFolder, '--password', '0AxMWhxBeM']);
-    server.stdout.on('data', onData);
-    server.stderr.on('data', onData);
+    server.stdout.on('data', onData('server'));
+    server.stderr.on('data', onData('server'));
     setTimeout(() => {
       resolve(server);
     }, 1000);
@@ -32,7 +35,7 @@ function startClient(logger = () => {}) {
     const client = spawn('node', [
       commandPath, 'sync', '--folder', clientFolder, '--password', '0AxMWhxBeM']);
     const loggerCB = (data) => {
-      onData(data);
+      onData('client')(data);
       logger(data);
     };
     client.stdout.on('data', loggerCB);
@@ -45,7 +48,7 @@ function startClient(logger = () => {}) {
 
 function kill(task) {
   try {
-    task.kill('SIGKILL');
+    task.kill('SIGINT');
   } catch (e) {}
 }
 
@@ -60,68 +63,88 @@ describe('Command Line', () => {
   
   afterEach(async () => {
     rimraf.sync(testFolder);
+    if (server) {
+      kill(server);
+      kill(client);
+    }
     await utils.sleep(500);
   })
 
   it ('should sync local file to remote file', async () => {
-    const server = await startServer();
-    const client = await startClient();
+    server = await startServer();
+    client = await startClient();
     fs.writeFileSync(path.join(clientFolder, 'a.txt'), '123');
     await utils.sleep(1000);
-    kill(client);
-    kill(server);
     expect(fs.existsSync(path.join(serverFolder, 'a.txt'))).to.true;
   }).timeout(10000);
 
+  it ('should sync increment changes', async () => {
+    server = await startServer();
+    client = await startClient();
+    let log;
+    client.stdout.on('data', (data) => {
+      log += data.toString();
+    });
+    server.stdout.on('data', (data) => {
+      log += data.toString();
+    });
+    const size = 1024;
+    let list = [];
+    for (let i = 0; i < size; i++) {
+      list.push('12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890');
+    }
+    const arr = new Uint16Array(1024 / 2);
+    fs.writeFileSync(path.join(clientFolder, 'a.txt'), list.join(''));
+    await utils.sleep(1000);
+    list.push('12345');
+    const result = list.join('');
+    fs.writeFileSync(path.join(clientFolder, 'a.txt'), result);
+    await utils.sleep(3000);
+    expect(fs.readFileSync(path.join(serverFolder, 'a.txt')).toString()).to.eq(result);
+    expect(log.indexOf('accept file changes')).to.gte(0);
+  }).timeout(10000);
+
   it ('should sync remote file to local file', async () => {
-    const server = await startServer();
-    const client = await startClient();
+    server = await startServer();
+    client = await startClient();
     fs.writeFileSync(path.join(serverFolder, 'b.txt'), '123');
     await utils.sleep(1000);
-    kill(client);
-    kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'b.txt'))).to.true;
   }).timeout(10000);
 
   it ('should sync local folder to remote folder', async () => {
-    const server = await startServer();
-    const client = await startClient();
+    server = await startServer();
+    client = await startClient();
     fs.mkdirSync(path.join(clientFolder, 'abc'));
     fs.mkdirSync(path.join(clientFolder, 'abc/def'));
     await utils.sleep(1000);
-    kill(client);
-    kill(server);
     expect(fs.existsSync(path.join(serverFolder, 'abc/def'))).to.true;
   }).timeout(10000);
 
   it ('should sync remote folder to local folder', async () => {
-    const server = await startServer();
-    const client = await startClient();
+    server = await startServer();
+    client = await startClient();
     fs.mkdirSync(path.join(serverFolder, 'abc2'));
     fs.mkdirSync(path.join(serverFolder, 'abc2/def2'));
     await utils.sleep(1000);
-    kill(client);
-    kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'abc2/def2'))).to.true;
   }).timeout(10000);
 
   it ('should sync folder deletion', async () => {
-    const server = await startServer();
-    const client = await startClient();
+    server = await startServer();
+    client = await startClient();
     await utils.addFolderP(path.join(serverFolder, 'xxx/a/b/c/d/e'));
     await utils.sleep(1000);
     expect(fs.existsSync(path.join(clientFolder, 'xxx/a/b/c/d/e'))).to.true;
 
     await utils.deleteFolderP(path.join(serverFolder, 'xxx'));
     await utils.sleep(1000);
-    kill(client);
-    kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'xxx'))).to.false;
   }).timeout(10000);
 
   it ('should re-connnect server if server stop after client connected', async () => {
-    let server = await startServer();
-    const client = await startClient();
+    server = await startServer();
+    client = await startClient();
     kill(server);
     await utils.sleep(200);
     let reconnectData;
@@ -130,46 +153,37 @@ describe('Command Line', () => {
     });
     server = await startServer();
     await utils.sleep(4000);
-    kill(client);
-    kill(server);
     expect(reconnectData).to.exist;
     expect(reconnectData.indexOf('reconnected')).to.gt(0);
   }).timeout(10000);
 
   it ('should only allow one client per one server', async () => {
     let server = await startServer();
-    const client = await startClient();
+    client = await startClient();
     const client2 = await startClient();
     await utils.sleep(500);
 
     const exitCode = client2.exitCode;
     
     kill(client2);
-    kill(client);
-    kill(server);
-
     expect(exitCode).to.exist;
   }).timeout(10000);
 
   it ('should skip ignore file', async () => {
-    const server = await startServer();
-    const client = await startClient();
+    server = await startServer();
+    client = await startClient();
     fs.mkdirSync(path.join(serverFolder, '.git'));
     fs.writeFileSync(path.join(serverFolder, '.git/ignore.txt'), '123');
     await utils.sleep(1000);
-    kill(client);
-    kill(server);
     expect(fs.existsSync(path.join(clientFolder, '.git/ignore.txt'))).to.false;
   }).timeout(10000);
 
   it ('should two way sync files on client connected', async () => {
     fs.writeFileSync(path.join(clientFolder, 'a.txt'), '123');
     fs.writeFileSync(path.join(serverFolder, 'b.txt'), '123');
-    const server = await startServer();
-    const client = await startClient();
+    server = await startServer();
+    client = await startClient();
     await utils.sleep(1000);
-    kill(client);
-    kill(server);
     expect(fs.existsSync(path.join(clientFolder, 'a.txt'))).to.true;
     expect(fs.existsSync(path.join(serverFolder, 'a.txt'))).to.true;
   }).timeout(10000);

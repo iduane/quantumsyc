@@ -3,6 +3,7 @@ const fs = require('fs');
 const rimraf = require('rimraf');
 const mkdirp = require('mkdirp');
 const { expect } = require('chai');
+const upath = require('upath');
 const checksum = require('../src/checksum');
 const utils = require('../src/utils');
 
@@ -36,8 +37,8 @@ describe('Checksum Folder', () => {
     }
     expect(count).to.eq(8);
 
-    const changedFilePath = path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1120.txt'));
-    const notChangedFilePath = path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1121.txt'));
+    const changedFilePath = upath.normalize(path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1120.txt')));
+    const notChangedFilePath =upath.normalize( path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1121.txt')));
     fs.writeFileSync(path.resolve(testFolder, changedFilePath), 'file1120 content changed');
 
     const digest2 = checksum(testFolder);

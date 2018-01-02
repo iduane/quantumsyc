@@ -12,7 +12,7 @@
             "runtimeArgs": [
                 // "test/command-line.js",
                 "-g",
-                "should handle quick changes"
+                "should sync increment changes"
             ],
             "internalConsoleOptions": "openOnSessionStart"
         },

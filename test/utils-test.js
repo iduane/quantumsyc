@@ -45,14 +45,14 @@ describe('Utils', () => {
 
     expect(fs.existsSync(filePath)).to.false;
 
-    let hasError = false;
-    try {
-      await utils.deleteFile(filePath);
-    } catch (e) {
-      hasError = true;
-    }
+    // let hasError = false;
+    // try {
+    //   await utils.deleteFile(filePath);
+    // } catch (e) {
+    //   hasError = true;
+    // }
 
-    expect(hasError).to.true;
+    // expect(hasError).to.true;
   })
 
   it ('readFile', async() => {

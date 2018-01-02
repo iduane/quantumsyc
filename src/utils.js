@@ -105,28 +105,39 @@ module.exports = {
     }); 
   },
 
-  deleteFile(fullPath) {
-    return new Promise((resolve, reject) => {
-      fs.unlink(fullPath, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
+  async deleteFile(fullPath) {
+    const exist = await this.exitsResource(fullPath);
+    if (exist) {
+      await new Promise((resolve, reject) => {
+        fs.unlink(fullPath, (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
       });
-    });
+    }
+
+    return exist;
   },
 
-  readFile(fullPath) {
-    return new Promise((resolve, reject) => {
-      fs.readFile(fullPath, (err, data) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(data);
-        }
+  async readFile(fullPath) {
+    const exist = await this.exitsResource(fullPath);
+    if (exist) {
+      const content = new Promise((resolve, reject) => {
+        fs.readFile(fullPath, (err, data) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(data);
+          }
+        });
       });
-    });
+      return content;
+    } else {
+      return '';
+    }
   },
 
   exitsResource(fullPath) {
