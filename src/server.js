@@ -39,7 +39,7 @@ module.exports = class Client extends Vehicle {
       listener.sockets.on('connection', (socket) => {
         if (self.stub) { // only allow one alive client
           socket.emit('duplicated-clients');
-          socket.disconnect(true);
+          // socket.disconnect(true);
           console.log('[QuantumSync] close connect since there is a exiting client connected.')
           return;
         }
