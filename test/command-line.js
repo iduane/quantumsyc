@@ -180,7 +180,7 @@ describe('Command Line', () => {
     await startClientAndServer();
     const client2 = spawn('node', [
       commandPath, 'sync', '--folder', clientFolder, '--password', '0AxMWhxBeM']);
-    await utils.sleep(2000);
+    await utils.sleep(4000);
     const exitCode = client2.exitCode;
     kill(client2);
     expect(exitCode).to.exist;
@@ -192,6 +192,33 @@ describe('Command Line', () => {
     fs.writeFileSync(path.join(serverFolder, '.git/ignore.txt'), '123');
     await utils.sleep(1000);
     expect(fs.existsSync(path.join(clientFolder, '.git/ignore.txt'))).to.false;
+  }).timeout(10000);
+
+  it ('should sync reveser ignore file', async () => {
+    fs.mkdirSync(path.join(serverFolder, '.quantumsync'));
+    fs.mkdirSync(path.join(clientFolder, '.quantumsync'));
+    const config = JSON.stringify({
+      ignores: ['.abc/*', '!.abc/d/']
+    });
+    fs.writeFileSync(path.join(serverFolder, '.quantumsync/quantumsync.config.json'), config);
+    fs.writeFileSync(path.join(clientFolder, '.quantumsync/quantumsync.config.json'), config);
+    await utils.mkdirP(path.join(serverFolder, '.abc/d'));
+    fs.writeFileSync(path.join(serverFolder, '.abc/a.js',), '123');
+    fs.writeFileSync(path.join(serverFolder, '.abc/d/e.js'), '123');
+    await startClientAndServer();
+
+    await utils.sleep(1000);
+
+    expect(fs.existsSync(path.join(clientFolder, '.abc/a.js'))).to.false;
+    expect(fs.existsSync(path.join(clientFolder, '.abc/d/e.js'))).to.true;
+    
+    fs.writeFileSync(path.join(serverFolder, '.abc/f.js',), '123');
+    fs.writeFileSync(path.join(serverFolder, '.abc/d/g.js'), '123');
+
+    await utils.sleep(1000);
+
+    expect(fs.existsSync(path.join(clientFolder, '.abc/f.js'))).to.false;
+    expect(fs.existsSync(path.join(clientFolder, '.abc/d/g.js'))).to.true;
   }).timeout(10000);
 
   it ('should two way sync files on client connected', async () => {

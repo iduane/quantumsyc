@@ -46,38 +46,37 @@ module.exports = class Vehicle {
   }
 
   hook() {
-    const self = this;
     this.socket.on('delete-resource', (lcoalPath) => {
       console.log('[QuantumSync] received delete resource request for: ' + lcoalPath);
-      self.onDelete(lcoalPath);
+      this.onDelete(lcoalPath);
     });
     this.socket.on('add-folder', (lcoalPath) => {
       console.log('[QuantumSync] received add folder request for: ' + lcoalPath);
-      self.onAddDir(lcoalPath);
+      this.onAddDir(lcoalPath);
     });
     this.socket.on('receipt', (receipt) => {
-      self.onReceipt(receipt);
+      this.onReceipt(receipt);
     });
     this.socket.on('set-lock', () => {
-      self.setLocalLock();
+      this.setLocalLock();
     });
     this.socket.on('remove-lock', () => {
-      self.removeLocalLock();
+      this.removeLocalLock();
     });
     this.socket.on('lock-result', (lockable) => {
-      self.onLockResult(lockable);
+      this.onLockResult(lockable);
     });
     this.socket.on('unlock-result', (lockable) => {
-      self.onUnlockResult();
+      this.onUnlockResult();
     });
     this.socket.on('text-file-diff', (data) => {
-      self.onReceiveTextFileDiff(data);
+      this.onReceiveTextFileDiff(data);
     });
     this.socket.on('text-file-diff-reject', (relPath) => {
-      self.onRejectTextFileDiff(relPath);
+      this.onRejectTextFileDiff(relPath);
     });
     this.socket.on('text-file-diff-accept', (relPath) => {
-      self.onAcceptTextFileDiff(relPath);
+      this.onAcceptTextFileDiff(relPath);
     });
   }
 
@@ -114,11 +113,12 @@ module.exports = class Vehicle {
   }
 
   delayDispatch(changes) {
-    const self = this;
     this.clearDelayDispatch();
     this._delayerID = setTimeout(() => {
-      self._delayerID = null;
-      self.dispatch({});
+      this._delayerID = null;
+      if (this.socket) {
+        this.dispatch({});
+      }
     }, Math.round(2000 * (1 + Math.random() / 2)));
   }
 
@@ -130,16 +130,16 @@ module.exports = class Vehicle {
 
   setLocalLock() {
     if (this.isBusy()) {
-      this.socket.emit('lock-result', false);
+      if (this.socket) this.socket.emit('lock-result', false);
     } else {
       this.setLock(true);
-      this.socket.emit('lock-result', true);
+      if (this.socket) this.socket.emit('lock-result', true);
     }
   }
 
   removeLocalLock() {
     this.setLock(true);
-    this.socket.emit('unlock-result');
+    if (this.socket) this.socket.emit('unlock-result');
   }
 
   isLocked() {
@@ -152,20 +152,18 @@ module.exports = class Vehicle {
 
   async setTargetLock() {
     this._waitingLock = true;
-    this.socket.emit('set-lock');
-    const self = this;
+    if (this.socket) this.socket.emit('set-lock');
     const state = await new Promise((resolve) => {
-      self._lockResolver = resolve;
+      this._lockResolver = resolve;
     });
 
     return state;
   }
 
   async removeTargetLock() {
-    this.socket.emit('remove-lock');
-    const self = this;
+    if (this.socket) this.socket.emit('remove-lock');
     await new Promise((resolve) => {
-      self._unlockResolver = resolve;
+      this._unlockResolver = resolve;
     });
     return true;
   }
@@ -190,15 +188,13 @@ module.exports = class Vehicle {
       console.log('[QuantumSync] received changes, but no clients connected yet');
       return Promise.reject();
     }
-    const logName = this.name;
-    const self = this;
     await Promise.all(changes.map((descriptor) => {
       return new Promise((resolve, reject) => {
         try {
           const fullPath = descriptor.fullPath || path.resolve(this.folder, descriptor.name);
           const relPath = upath.normalize(descriptor.name);
           if (descriptor.op === 'delete') {
-            console.log('[QuantumSync] send remove file request for: ' + descriptor.name);
+            console.log('[QuantumSync] ' + this.name + ' send remove file request for: ' + descriptor.name);
             socket.emit('delete-resource', relPath);
             resolve();
           } else {
@@ -208,7 +204,7 @@ module.exports = class Vehicle {
             } else {
               const fileStat = fs.lstatSync(fullPath);
               if (fileStat.isFile()) {
-                self.sendFile(resolve, relPath, fullPath);
+                this.sendFile(resolve, relPath, fullPath);
               } else if (fileStat.isDirectory()) {
                 console.log('[QuantumSync] send sync folder request for: ' + descriptor.name);
                 socket.emit('add-folder', relPath);
@@ -228,27 +224,31 @@ module.exports = class Vehicle {
   }
 
   async sendFile(resolve, relPath, fullPath) {
-    const fileExist = await utils.exitsResource(fullPath);
-    if (!fileExist) {
-      resolve();
-      return;
-    }
-    const fileData = await utils.readFile(fullPath);
-    const fileState = await utils.lstatResource(fullPath);
-    const useDiff = fileState.size > 10240 && !isBinaryFile.sync(fileData, fileState.size);
+    try {
+      const fileExist = await utils.exitsResource(fullPath);
+      if (!fileExist) {
+        resolve();
+        return;
+      }
+      const fileData = await utils.readFile(fullPath);
+      const fileState = await utils.lstatResource(fullPath);
+      const useDiff = fileState.size > 10240 && !isBinaryFile.sync(fileData, fileState.size);
 
-    let isTextDiffAccepted = false;
-    if (useDiff) {
-      isTextDiffAccepted = await this.sendTextFileDiff(relPath, fullPath, fileData);
-    }
-    if (!isTextDiffAccepted) {
-      console.log('[QuantumSync] ' + this.name +  ' send sync file request for: ' + relPath);
-      const self = this;
-      this.stub.send({ name: relPath, path: fullPath });
-      this.stub.on('send.success', () => {
-        self.waitReceipt(relPath, resolve);
-      });
-    } else {
+      let isTextDiffAccepted = false;
+      if (useDiff) {
+        isTextDiffAccepted = await this.sendTextFileDiff(relPath, fullPath, fileData);
+      }
+      if (!isTextDiffAccepted) {
+        console.log('[QuantumSync] ' + this.name +  ' send sync file request for: ' + relPath);
+        this.stub.send({ name: relPath, path: fullPath });
+        this.stub.on('send.success', () => {
+          this.waitReceipt(relPath, resolve);
+        });
+      } else {
+        resolve();
+      }
+    } catch (e) {
+      cconsole.log('[QuantumSync] encounter error when sync file ' + fullPath + ', ' + e);
       resolve();
     }
   }
@@ -266,7 +266,7 @@ module.exports = class Vehicle {
 
     if (cache) {
       const diff = jsDiff.createPatch(relPath, cache.text + "\n", text + "\n");
-      this.socket.emit('text-file-diff', { relPath, diff, digest });
+      if (this.socket) this.socket.emit('text-file-diff', { relPath, diff, digest });
       const isAccepted = await new Promise((resolve) => {
         if (this._diffResolver[relPath]) {
           this._diffResolver[relPath].resolve();
@@ -295,7 +295,7 @@ module.exports = class Vehicle {
       md5.update(patchedData);
       const localDigest = md5.digest('hex');
       if (localDigest === digest) {
-        this.socket.emit('text-file-diff-accept', relPath);
+        if (this.socket) this.socket.emit('text-file-diff-accept', relPath);
         console.log('[QuantumSync] ' + this.name +  ' accept file changes for: ' + relPath);
         await this.writeFile(fullPath, patchedData); 
         accept = true;     
@@ -304,7 +304,7 @@ module.exports = class Vehicle {
 
     if (!accept) {
       console.log('[QuantumSync] ' + this.name +  ' reject file changes for: ' + relPath);
-      this.socket.emit('text-file-diff-reject', relPath);
+      if (this.socket) this.socket.emit('text-file-diff-reject', relPath);
     }
   }
 
@@ -326,7 +326,7 @@ module.exports = class Vehicle {
 
   async sendReceipt(file) {
     const { name } = file;
-    this.socket.emit('receipt', { name: upath.normalize(name) });
+    if (this.socket) this.socket.emit('receipt', { name: upath.normalize(name) });
   }
 
   async onReceipt({ name }) {
@@ -368,12 +368,14 @@ module.exports = class Vehicle {
 
     if (await utils.exitsResource(writePath)) {
       const existData = await utils.readFile(writePath);
-      if (!existData.equals(file.buffer)) {
+      if (file.buffer && !existData.equals(file.buffer)) {
         await this.writeFile(writePath, file.buffer);
       }
     } else {
       await this.writeFile(writePath, file.buffer);
     }
+
+    this.lastestChangeTime = new Date().getTime();
   }
 
   async onDelete(localPath) {
@@ -386,6 +388,8 @@ module.exports = class Vehicle {
         await this.deleteFolder(deletePath)
       }
     }
+
+    this.lastestChangeTime = new Date().getTime();
   }
 
   async onAddDir(localPath) {
@@ -393,6 +397,8 @@ module.exports = class Vehicle {
     if (!await utils.exitsResource(dirPath)) {
       await this.addFolder(dirPath);
     }
+
+    this.lastestChangeTime = new Date().getTime();
   }
 
   async writeFile(path, buffer) {

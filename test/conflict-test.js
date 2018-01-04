@@ -18,6 +18,7 @@ function onData(data) {
 
 function startServer() {
   return new Promise((resolve, reject) => {
+    // const server = spawn('node', ['--inspect-brk=12345',
     const server = spawn('node', [
       commandPath, 'serve', '--folder', serverFolder, '--password', '0AxMWhxBeM']);
     server.stdout.on('data', onData);
@@ -30,6 +31,7 @@ function startServer() {
 
 function startClient(logger = () => {}) {
   return new Promise((resolve, reject) => {
+    // const client = spawn('node', ['--inspect-brk=12346',
     const client = spawn('node', [
       commandPath, 'sync', '--folder', clientFolder, '--password', '0AxMWhxBeM']);
     const loggerCB = (data) => {
@@ -81,9 +83,9 @@ describe('Conflict', function() {
   });
 
   it ('should handle quick changes', async () => {
-    let size = 1000;
+    let size = 100;
     while (size--) {
-      process.nextTick(((size) => {
+      setTimeout(((size) => {
         return () => {
           if (Math.random() > 0.5) {
             fs.writeFile(path.resolve(clientFolder, 'a.txt'), size, () => {});
@@ -91,9 +93,9 @@ describe('Conflict', function() {
             fs.writeFile(path.resolve(serverFolder, 'a.txt'), size, () => {});
           }
         }
-      })(size));
+      })(size), Math.round(50 * (1 + Math.random())));
     }
-    await utils.sleep(1000);
+    await utils.sleep(3000);
     let clientContent = fs.readFileSync(path.resolve(clientFolder, 'a.txt')).toString();
     let serverContent = fs.readFileSync(path.resolve(serverFolder, 'a.txt')).toString();
 
@@ -125,13 +127,12 @@ describe('Conflict', function() {
       }
       await utils.sleep(100);
     }
-    await utils.sleep(1000);
-    if (lastOp === 'change') {
+    await utils.sleep(4000);
+    if (fs.existsSync(path.resolve(clientFolder, 'b.txt'))) {
       clientContent = fs.readFileSync(path.resolve(clientFolder, 'b.txt')).toString();
       serverContent = fs.readFileSync(path.resolve(serverFolder, 'b.txt')).toString();
       expect(clientContent).to.eq(serverContent);
     } else {
-      expect(fs.existsSync(path.resolve(clientFolder, 'b.txt'))).to.false;
       expect(fs.existsSync(path.resolve(serverFolder, 'b.txt'))).to.false;
     }
   }).timeout(20000);

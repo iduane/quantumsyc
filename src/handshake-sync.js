@@ -117,10 +117,22 @@ function compareDigest(localDigest, remoteDigest, watchFolder) {
   };
 }
 
+function checkDeadWaiting(vehicle, timeoutThreshold, resolve, reject) {
+  setTimeout(() => {
+    if (!vehicle.lastestChangeTime) {
+      reject();
+    } else {
+      if ((vehicle.lastestChangeTime - (new Date().getTime)) > timeoutThreshold) {
+        reject();
+      } else {
+        checkDeadWaiting(vehicle, timeoutThreshold, resolve, reject);
+      }
+    }
+  }, timeoutThreshold);
+}
 
 module.exports = async function(vehicle, localDigest, remoteDigest) {
   const { push, pull, rmLocal, rmRemote } = compareDigest(localDigest, remoteDigest, vehicle.folder);
-
   try {
     await vehicle.sendChanges(vehicle.socket, vehicle.stub, push.concat(rmRemote), vehicle.folder);
   } catch (e) {
@@ -130,9 +142,13 @@ module.exports = async function(vehicle, localDigest, remoteDigest) {
   rmLocal.forEach((localPath) => {
     vehicle.onDelete(localPath);
   });
+  const timeoutThreshold = systemConfig.getSystemConfig().timeout;
   await new Promise((resolve, reject) => {
-    vehicle.socket.on('pull-changes-done', resolve);
-    vehicle.socket.emit('pull-changes', pull);
-    setTimeout(reject, systemConfig.getSystemConfig().timeout);
+    if (vehicle.socket) {
+      vehicle.socket.on('pull-changes-done', resolve);
+      vehicle.socket.emit('pull-changes', pull);
+    }
+
+    checkDeadWaiting(vehicle, timeoutThreshold, resolve, reject);
   })
 }

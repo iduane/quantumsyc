@@ -26,7 +26,7 @@ module.exports = {
         '.swp',
         '.quantumsync'
     ],
-    timeout: 1000,
+    timeout: 10000,
     syncRules: {
         // FIXME: add test cases for all rules
         sameFileConfict: 'checkModifyTime', // 'useServer', 'userClient',

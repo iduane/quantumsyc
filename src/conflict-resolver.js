@@ -50,8 +50,10 @@ module.exports = class ConflictResolve {
       if (cacheItem) {
         if (cacheItem.type === 'file') {
           if (cacheItem.status === 'changed' && cacheItem.data) {
-            const localData = await utils.readFile(path.resolve(watchedPath, relPath));
-            if (cacheItem.data.equals(localData)) {
+            const fullPath = path.resolve(watchedPath, relPath);
+            const fileExist = await utils.exitsResource(fullPath)
+            const localData = await utils.readFile(fullPath);
+            if (!fileExist || cacheItem.data.equals(localData)) {
               // console.log('[QuantumSync] ' + logName + ' ignore loopback for ' + relPath);
               ignoreLoopback(relPath);
             }

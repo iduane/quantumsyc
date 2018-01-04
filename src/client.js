@@ -17,7 +17,6 @@ module.exports = class Client extends Vehicle {
 
   async start() {
     const { host, port } = this;
-    const self = this;
     return new Promise((resolve, reject) => {
       const useSSL = systemConfig.getSystemConfig().useSSL;
       const url = (useSSL ? 'https://' : 'http://') + host + ':' + port;
@@ -29,9 +28,9 @@ module.exports = class Client extends Vehicle {
         // agent: false
       });
       console.log('[QuantumSync] connect to ' + url + (useSSL ? ' with SSL' : ''));
-      self.socket = socket;
+      this.socket = socket;
 
-      self.waitShakeSync();
+      this.waitShakeSync();
 
       let isInitConnected = true;
 
@@ -43,38 +42,38 @@ module.exports = class Client extends Vehicle {
         console.log('[QuantumSync] client reconnected');
       });
       socket.on('disconnect', () => {
-        if (self.stub) {
-          self.stub.pubSub.channels = [];
-          self.stub = null;
+        if (this.stub) {
+          this.stub.pubSub.channels = [];
+          this.stub = null;
         }
-        self.setBusy(false);
-        self._handshakeSyncDone = false;
-        self._receiptWaitingMap = {};
+        this.setBusy(false);
+        this._handshakeSyncDone = false;
+        this._receiptWaitingMap = {};
         console.log('[QuantumSync] client disconnected');
       });
       socket.on('duplicated-clients', () => {
         console.log('[QuantumSync] there is already a client connected, so close this session');
-        self.terminate();
+        this.terminate();
       });
       socket.on('reconnect_attempt', (attemptCount) => {
         console.error('[QuantumSync] try ' + attemptCount + ' reconnecting');
       });
-      self.hook();
+      this.hook();
       socket.on('connect', () => {
         if (isInitConnected) {
           isInitConnected = false;
           console.log('[QuantumSync] client connect to server successful');
         }
-        self.confictResolver.reset();
+        this.confictResolver.reset();
         const delivery = dl.listen(socket);
         delivery.connect();
 
         delivery.on('delivery.connect', (delivery) => {
-          self.stub = delivery;
-          self.authorize();
-          delivery.on('receive.success', async function(file){
-            await self.onData(file);
-            await self.sendReceipt(file);
+          this.stub = delivery;
+          this.authorize();
+          delivery.on('receive.success', async (file) => {
+            await this.onData(file);
+            await this.sendReceipt(file);
           });
           resolve();
         });
@@ -84,18 +83,17 @@ module.exports = class Client extends Vehicle {
 
   authorize() {
     if (systemConfig.getSystemConfig().usePassword) {
-      const self = this;
       this.socket.on('auth-accept', () => {
         console.log('[QuantumSync] receive auth successful event');
-        self.syncShake();
+        this.syncShake();
       });
       this.socket.on('auth-reject', () => {
         console.error('[QuantumSync] receive authorize fail event');
-        self.terminate();
+        this.terminate();
       });
       const shasum = crypto.createHash('sha1');
       shasum.update(this.socket.id + (systemConfig.getSystemConfig().secret || '') + this.password);
-      this.socket.emit('auth', shasum.digest('hex'));
+      if (this.socket) this.socket.emit('auth', shasum.digest('hex'));
     } else {
       this.syncShake();
     }
@@ -105,37 +103,36 @@ module.exports = class Client extends Vehicle {
     if (!this._handshakeSyncDone && this._remoteDigest) {
       const localDigest = await checksum(this.folder);
       await handshakeSync(this, localDigest, this._remoteDigest);
-      this.socket.emit('client-handshake-done');
+      if (this.socket) this.socket.emit('client-handshake-done');
     }
   }
 
   waitShakeSync() {
     this.setBusy(true);
 
-    const self = this;
     this.socket.on('handshake-digest', async (remoteDigest) => {
-      self._remoteDigest = remoteDigest;
-      if (self.stub) {
-        await self.syncShake();
+      this._remoteDigest = remoteDigest;
+      if (this.stub) {
+        await this.syncShake();
       }
     });
 
     this.socket.on('server-handshake-done', async (remoteDigest) => {
-      self.setBusy(false);
-      self._handshakeSyncDone = true;
-      self._remoteDigest = null;
+      this.setBusy(false);
+      this._handshakeSyncDone = true;
+      this._remoteDigest = null;
       console.log('[QuantumSync] ' + this.name + ' handshake sync end');
       
-      self.dispatch({});
+      this.dispatch({});
     });
   }
   
   setLocalLock() {
     if (this.isBusy() && !this._waitingLock) {
-      this.socket.emit('lock-result', false);
+      if (this.socket) this.socket.emit('lock-result', false);
     } else {
       this._locked = true;
-      this.socket.emit('lock-result', true);
+      if (this.socket) this.socket.emit('lock-result', true);
     }
   }
 

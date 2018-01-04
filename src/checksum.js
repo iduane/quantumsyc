@@ -13,33 +13,33 @@ const walk = async function(fullPath, watchFolder) {
   let resouceMap = {};
 
   const relativePath = upath.normalize(path.relative(watchFolder, fullPath));
-  if (relativePath === '' || !ig.ignores(relativePath)) {
-    if (state.isDirectory()) {
-      if (relativePath !== '' && relativePath !== '.') {
-        resouceMap[relativePath] = {
-          isFolder: true,
-          mtime: state.mtime,
-        };
-      }
+  const ignored = ig.ignores(relativePath);
 
-      const resources = await utils.readDir(fullPath);
-      for (let i = 0; i < resources.length; i++) {
-        const childFullPath = path.resolve(fullPath, resources[i]);
-        const childMap = await walk(childFullPath, watchFolder);
-        resouceMap = utils.mergeMap(resouceMap, childMap);
-      }
-    } else if (state.isFile()) {
-      const md5 = crypto.createHash('md5');
-      const fileData = await utils.readFile(fullPath);
-      md5.update(fileData);
+  if (state.isDirectory()) {
+    if (!ignored && relativePath !== '' && relativePath !== '.') {
       resouceMap[relativePath] = {
-        isFile: true,
-        digest: md5.digest('hex'),
-        mtime: state.mtime.getTime(),
+        isFolder: true,
+        mtime: state.mtime,
       };
     }
 
+    const resources = await utils.readDir(fullPath);
+    for (let i = 0; i < resources.length; i++) {
+      const childFullPath = path.resolve(fullPath, resources[i]);
+      const childMap = await walk(childFullPath, watchFolder);
+      resouceMap = utils.mergeMap(resouceMap, childMap);
+    }
+  } else if (!ignored && state.isFile()) {
+    const md5 = crypto.createHash('md5');
+    const fileData = await utils.readFile(fullPath);
+    md5.update(fileData);
+    resouceMap[relativePath] = {
+      isFile: true,
+      digest: md5.digest('hex'),
+      mtime: state.mtime.getTime(),
+    };
   }
+
 
   return resouceMap;
 }

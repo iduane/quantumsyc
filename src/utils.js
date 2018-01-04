@@ -1,3 +1,4 @@
+const { Buffer } = require('buffer');
 const fs = require('fs');
 const path = require('path');
 const rimraf = require('rimraf');
@@ -136,7 +137,7 @@ module.exports = {
       });
       return content;
     } else {
-      return '';
+      return Buffer.from([]);
     }
   },
 
