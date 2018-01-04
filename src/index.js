@@ -30,11 +30,12 @@ commander
     let folder;
     try {
       folder = utils.getDefautFolderIfNotExist(options.folder);
+      systemConfig.initSystemConfig(folder);
     } catch (e) {
-      console.error('[QuantumSync] the watched folder ' + options.folder + ' is not exits');
+      console.error('[QuantumSync] encounter error at initializing, ' + e);
       return;
     }
-    systemConfig.initSystemConfig(folder);
+    
     const config = systemConfig.getSystemConfig();
     const host = options.host || config.host;
     const port = options.port || config.port;
@@ -58,11 +59,11 @@ commander
     let folder;
     try {
       folder = utils.getDefautFolderIfNotExist(options.folder);
+      systemConfig.initSystemConfig(folder);
     } catch (e) {
-      console.error('[QuantumSync] the watched folder ' + options.folder + ' is not exits');
+      console.error('[QuantumSync] encounter error at initializing, ' + e);
       return;
     }
-    systemConfig.initSystemConfig(folder);
     const config = systemConfig.getSystemConfig();
     const port = options.port || config.port;
 

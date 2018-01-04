@@ -62,6 +62,15 @@ describe('Utils', () => {
     expect(data.toString()).to.eq('abc');
   })
 
+  it ('readDir', async() => {
+    await utils.writeFile(path.resolve(testFolder, 'a.txt'), 'abc');
+    await utils.addFolder(path.resolve(testFolder, 'b'), 'abc');
+
+    const data = await utils.readDir(testFolder);
+
+    expect(data).to.eql(['a.txt', 'b']);
+  })
+
   it ('exitsResource', async () => {
     const filePath1 = path.resolve(testFolder, 'a2.txt');
     await utils.writeFile(filePath1, 'abc');

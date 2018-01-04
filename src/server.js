@@ -95,7 +95,7 @@ module.exports = class Client extends Vehicle {
     }
   }
 
-  handeShakeSync() {
+  async handeShakeSync() {
     const self = this;
     this.socket.on('client-handshake-done', () => {
       self.setBusy(false);
@@ -113,7 +113,7 @@ module.exports = class Client extends Vehicle {
     });
     try {
       console.log('[QuantumSync] handshake sync start');
-      this.socket.emit('handshake-digest', checksum(this.folder));
+      this.socket.emit('handshake-digest', await checksum(this.folder));
     } catch (e) {
       console.error('[QuantumSync] handshake sync meet eror' + e);
       this.setBusy(false);

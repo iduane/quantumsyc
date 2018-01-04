@@ -87,7 +87,7 @@ module.exports = class Vehicle {
     if (!this.isBusy() || !this.isLocked()) {
       this.clearDelayDispatch();
       this.setBusy(true);
-      const changes = this.confictResolver.commitChanges();
+      const changes = await this.confictResolver.commitChanges();
       this.confictResolver.emptyChanges();
       if (changes.length > 0) {
         const locked = await this.setTargetLock();
@@ -194,35 +194,45 @@ module.exports = class Vehicle {
     const self = this;
     await Promise.all(changes.map((descriptor) => {
       return new Promise((resolve, reject) => {
-        const fullPath = descriptor.fullPath || path.resolve(this.folder, descriptor.name);
-        const relPath = upath.normalize(descriptor.name);
-        if (descriptor.op === 'delete') {
-          console.log('[QuantumSync] send remove file request for: ' + descriptor.name);
-          socket.emit('delete-resource', relPath);
-          resolve();
-        } else {
-          if (!fs.existsSync(fullPath)) {
-            console.log('[QuantumSync] the sync file ' + fullPath + ' is not exit');
+        try {
+          const fullPath = descriptor.fullPath || path.resolve(this.folder, descriptor.name);
+          const relPath = upath.normalize(descriptor.name);
+          if (descriptor.op === 'delete') {
+            console.log('[QuantumSync] send remove file request for: ' + descriptor.name);
+            socket.emit('delete-resource', relPath);
             resolve();
           } else {
-            const fileStat = fs.lstatSync(fullPath);
-            if (fileStat.isFile()) {
-              self.sendFile(resolve, relPath, fullPath);
-            } else if (fileStat.isDirectory()) {
-              console.log('[QuantumSync] send sync folder request for: ' + descriptor.name);
-              socket.emit('add-folder', relPath);
+            if (!fs.existsSync(fullPath)) {
+              console.log('[QuantumSync] the sync file ' + fullPath + ' is not exit');
               resolve();
             } else {
-              console.log('[QuantumSync] the sync file type of ' + fullPath + ' is not supported');
-              resolve();
+              const fileStat = fs.lstatSync(fullPath);
+              if (fileStat.isFile()) {
+                self.sendFile(resolve, relPath, fullPath);
+              } else if (fileStat.isDirectory()) {
+                console.log('[QuantumSync] send sync folder request for: ' + descriptor.name);
+                socket.emit('add-folder', relPath);
+                resolve();
+              } else {
+                console.log('[QuantumSync] the sync file type of ' + fullPath + ' is not supported');
+                resolve();
+              }
             }
           }
+        } catch (e) {
+          resolve();
+          console.log('[QuantumSync] encounter error when sync file ' + fullPath + ', ' + e);
         }
       })
     }));
   }
 
   async sendFile(resolve, relPath, fullPath) {
+    const fileExist = await utils.exitsResource(fullPath);
+    if (!fileExist) {
+      resolve();
+      return;
+    }
     const fileData = await utils.readFile(fullPath);
     const fileState = await utils.lstatResource(fullPath);
     const useDiff = fileState.size > 10240 && !isBinaryFile.sync(fileData, fileState.size);

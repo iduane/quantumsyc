@@ -55,7 +55,7 @@ QuantumSync 默认读取监控目录下 .quantumsync/quantumsync.config.json 作
     "sslOptions": {
         "key": "/path/to/key.pem",
         "cert": "/path/to/cert.pem",
-        "passphrase": "",
+        "passphrase": ""
     },
     "ignores": ["node_modules", ".git"],
     "secret": ""

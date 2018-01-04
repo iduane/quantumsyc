@@ -6,10 +6,10 @@ const utils = require('./utils');
 const systemConfig = require('./system-config');
 const upath = require('upath');
 
-const walk = function(fullPath, watchFolder) {
+const walk = async function(fullPath, watchFolder) {
   if (typeof watchFolder === 'undefined') watchFolder = fullPath;
   const ig = ignore().add(systemConfig.getSystemConfig().ignores);
-  const state = fs.statSync(fullPath);
+  const state = await utils.lstatResource(fullPath);
   let resouceMap = {};
 
   const relativePath = upath.normalize(path.relative(watchFolder, fullPath));
@@ -22,15 +22,16 @@ const walk = function(fullPath, watchFolder) {
         };
       }
 
-      const resources = fs.readdirSync(fullPath);
-      resources.forEach((localPath) => {
-        const childFullPath = path.resolve(fullPath, localPath);
-
-        resouceMap = utils.mergeMap(resouceMap, walk(childFullPath, watchFolder));
-      })
+      const resources = await utils.readDir(fullPath);
+      for (let i = 0; i < resources.length; i++) {
+        const childFullPath = path.resolve(fullPath, resources[i]);
+        const childMap = await walk(childFullPath, watchFolder);
+        resouceMap = utils.mergeMap(resouceMap, childMap);
+      }
     } else if (state.isFile()) {
       const md5 = crypto.createHash('md5');
-      md5.update(fs.readFileSync(fullPath))
+      const fileData = await utils.readFile(fullPath);
+      md5.update(fileData);
       resouceMap[relativePath] = {
         isFile: true,
         digest: md5.digest('hex'),

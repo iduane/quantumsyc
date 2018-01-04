@@ -125,7 +125,7 @@ module.exports = {
   async readFile(fullPath) {
     const exist = await this.exitsResource(fullPath);
     if (exist) {
-      const content = new Promise((resolve, reject) => {
+      const content = await new Promise((resolve, reject) => {
         fs.readFile(fullPath, (err, data) => {
           if (err) {
             reject(err);
@@ -137,6 +137,24 @@ module.exports = {
       return content;
     } else {
       return '';
+    }
+  },
+
+  async readDir(fullPath) {
+    const exist = await this.exitsResource(fullPath);
+    if (exist) {
+      const content = await new Promise((resolve, reject) => {
+        fs.readdir(fullPath, (err, data) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(data);
+          }
+        });
+      });
+      return content;
+    } else {
+      return [];
     }
   },
 

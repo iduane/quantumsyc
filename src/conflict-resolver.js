@@ -36,7 +36,7 @@ module.exports = class ConflictResolve {
     }
   }
 
-  commitChanges() {
+  async commitChanges() {
     const map = changeMap;
     
     function ignoreLoopback(relPath) {
@@ -50,7 +50,7 @@ module.exports = class ConflictResolve {
       if (cacheItem) {
         if (cacheItem.type === 'file') {
           if (cacheItem.status === 'changed' && cacheItem.data) {
-            const localData = fs.readFileSync(path.resolve(watchedPath, relPath));
+            const localData = await utils.readFile(path.resolve(watchedPath, relPath));
             if (cacheItem.data.equals(localData)) {
               // console.log('[QuantumSync] ' + logName + ' ignore loopback for ' + relPath);
               ignoreLoopback(relPath);

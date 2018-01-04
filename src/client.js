@@ -103,7 +103,7 @@ module.exports = class Client extends Vehicle {
 
   async syncShake() {
     if (!this._handshakeSyncDone && this._remoteDigest) {
-      const localDigest = checksum(this.folder);
+      const localDigest = await checksum(this.folder);
       await handshakeSync(this, localDigest, this._remoteDigest);
       this.socket.emit('client-handshake-done');
     }

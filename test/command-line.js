@@ -172,7 +172,7 @@ describe('Command Line', () => {
     kill(server);
     await utils.sleep(1000);
     server = await startServer();
-    await utils.sleep(2000);
+    await utils.sleep(4000);
     expect(log.indexOf('reconnected')).to.gte(0);
   }).timeout(10000);
 

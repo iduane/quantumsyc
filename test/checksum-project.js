@@ -11,6 +11,7 @@ const testFolder = path.join(__dirname, 'temp/checksum-folder');
 
 describe('Checksum Folder', () => {
   beforeEach(() => {
+    rimraf.sync(testFolder);
     mkdirp.sync(path.resolve(testFolder))
   })
   
@@ -18,7 +19,7 @@ describe('Checksum Folder', () => {
     rimraf.sync(testFolder);
   })
 
-  it ('should checksum all support files and folders', () => {
+  it ('should checksum all support files and folders', async () => {
     fs.writeFileSync(path.resolve(testFolder, 'file0.txt'), 'file0 content');
     fs.writeFileSync(path.resolve(testFolder, 'file01.txt'), 'file0 content');
     fs.mkdirSync(path.resolve(testFolder, 'dir1'));
@@ -28,7 +29,7 @@ describe('Checksum Folder', () => {
     fs.writeFileSync(path.resolve(testFolder, 'dir1/dir12/file1120.txt'), 'file1120 content');
     fs.writeFileSync(path.resolve(testFolder, 'dir1/dir12/file1121.txt'), 'file1121 content');
     
-    const digest1 = checksum(testFolder);
+    const digest1 = await checksum(testFolder);
     let count = 0;
     for (let key in digest1) {
       if (digest1.hasOwnProperty(key)) {
@@ -41,7 +42,7 @@ describe('Checksum Folder', () => {
     const notChangedFilePath =upath.normalize( path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1121.txt')));
     fs.writeFileSync(path.resolve(testFolder, changedFilePath), 'file1120 content changed');
 
-    const digest2 = checksum(testFolder);
+    const digest2 = await checksum(testFolder);
     count = 0;
     for (let key in digest2) {
       if (digest2.hasOwnProperty(key)) {
@@ -54,7 +55,7 @@ describe('Checksum Folder', () => {
     expect(digest1[notChangedFilePath].digest).to.eq(digest2[notChangedFilePath].digest)
   })
 
-  it ('should skip ignore files checksum', () => {
+  it ('should skip ignore files checksum', async () => {
     rimraf.sync(testFolder);
     fs.mkdirSync(path.resolve(testFolder));
     fs.mkdirSync(path.resolve(testFolder, '.git'));
@@ -63,7 +64,7 @@ describe('Checksum Folder', () => {
     fs.writeFileSync(path.resolve(testFolder, 'dir1/file10.txt'), '10 content');
     fs.writeFileSync(path.resolve(testFolder, 'dir1/file11.txt'), '11 content');
     
-    const digest1 = checksum(testFolder);
+    const digest1 = await checksum(testFolder);
     let count = 0;
     for (let key in digest1) {
       if (digest1.hasOwnProperty(key)) {
