@@ -22,6 +22,7 @@
   "author": "iduane@126.com",
   "license": "MIT",
   "dependencies": {
+    "mime": "^1.4.1",
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
     "chalk": "^2.3.0",
@@ -35,7 +36,6 @@
     "ignore": "^3.3.7",
     "isbinaryfile": "^3.0.2",
     "lru-cache": "^4.1.1",
-    "mime": "^1.4.1",
     "mkdirp": "^0.5.1",
     "rimraf": "^2.6.2",
     "socket.io": "^2.0.4",
