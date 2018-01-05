@@ -50,7 +50,10 @@ module.exports = class Client extends Vehicle {
             this.stub.pubSub.channels = [];
             this.stub = null;
           }
-          this.socket.destroy();
+          if (this.socket) {
+            this.socket.disconnect(true);
+            this.socket = null;
+          }
           this.setBusy(false);
           this.setLock(false);
           console.log('[QuantumSync] client disconnect, reason: '+ reason);

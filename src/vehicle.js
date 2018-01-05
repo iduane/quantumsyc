@@ -9,7 +9,7 @@ const path = require('path');
 const upath = require('upath');
 const jsDiff = require('diff');
 const isBinaryFile = require('isbinaryfile');
-const LRU = require("lru-cache")
+const LRU = require("lru-cache");
 const ConflictResolver = require('./conflict-resolver');
 
 module.exports = class Vehicle {

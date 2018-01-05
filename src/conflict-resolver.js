@@ -2,9 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const utils = require('./utils');
 const upath = require('upath');
+const LRU = require("lru-cache");
 
-let changeMap = {};
-let cache = {};
+let changeMap = new LRU({  max: 100000, maxAge: 1000 * 60 * 60 });
+let cache = new LRU({  max: 1000, maxAge: 1000 * 60 * 5 });
 let watchedPath;
 let logName;
 
@@ -21,32 +22,31 @@ module.exports = class ConflictResolve {
   }
 
   removeChange(relPath) {
-    delete changeMap[relPath];
+    changeMap.del(relPath);
   }
 
   reduceChanges(changes = {}) {
     for (let relPath in changes) {
-      if (changeMap[relPath]) {
-        if (changeMap[relPath].clock < changes[relPath].clock) {
-          changeMap[relPath] = changes[relPath];
+      const cachedChange = changeMap.get(relPath);
+      if (cachedChange) {
+        if (cachedChange.clock < changes[relPath].clock) {
+          changeMap.set(relPath, changes[relPath]);
         }
       } else {
-        changeMap[relPath] = changes[relPath];
+        changeMap.set(relPath, changes[relPath]);
       }
     }
   }
 
-  async commitChanges() {
-    const map = changeMap;
-    
+  async commitChanges() {    
     function ignoreLoopback(relPath) {
-      delete map[relPath];
-      delete cache[relPath];
+      changeMap.del(relPath);
+      cache.del(relPath);
       // console.log('[QuantumSync] ' + logName + ' ignore loopback for ' + relPath);
     }
 
-    for (let relPath in map) {
-      const cacheItem = cache[relPath];
+    for (let relPath in changeMap.keys()) {
+      const cacheItem = cache.get(relPath);
       if (cacheItem) {
         if (cacheItem.type === 'file') {
           if (cacheItem.status === 'changed' && cacheItem.data) {
@@ -57,39 +57,44 @@ module.exports = class ConflictResolve {
               // console.log('[QuantumSync] ' + logName + ' ignore loopback for ' + relPath);
               ignoreLoopback(relPath);
             }
-          } else if (cacheItem.status === 'deleted' && map[relPath].op === 'delete') {
+          } else if (cacheItem.status === 'deleted' && changeMap.get(relPath).op === 'delete') {
             ignoreLoopback(relPath);
           }
         } else if (cacheItem.type === 'folder') {
-          if ((cacheItem.status === 'deleted' && map[relPath].op === 'delete') ||
-            ((cacheItem.status === 'changed' && map[relPath].op === 'new'))) {
+          if ((cacheItem.status === 'deleted' && changeMap.get(relPath).op === 'delete') ||
+            ((cacheItem.status === 'changed' && changeMap.get(relPath).op === 'new'))) {
               ignoreLoopback(relPath);
           }
         }
       }
     }
+    
+    const map = {};
+    changeMap.forEach((change, relPath) => {
+      map[relPath] = change;
+    });
     this.emptyChanges();
     return utils.toList(map);
   }
 
   emptyChanges() {
-    changeMap = {};
+    changeMap.reset();
   }
 
   updateCache(filePath, desciptor) {
     const relPath = upath.normalize(path.relative(watchedPath, filePath));
-    cache[relPath] = desciptor;
+    cache.set(relPath, desciptor);
 
     this.removeChange(relPath);
   }
 
   removeCache(path) {
     const relPath = path.relative(watchedPath, filePath);
-    delete cache[relPath];
+    cache.del(relPath);
   }
 
   emptyCache() {
-    cache = {};
+    cache.reset();
   }
 }
 
