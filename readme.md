@@ -2,7 +2,7 @@
 
 QuantumSync 用于实现两台电脑之间文件夹的自动双向同步，支持 Windows, Mac, Linux 。
 
-[![NPM Version](https://img.shields.io/npm/v/quantumsync.svg)](https://www.npmjs.com/package/quantumsync) [![node](https://img.shields.io/node/v/quantumsync.svg)]() [![DUB](https://img.shields.io/dub/l/vibe-d.svg)]()
+[![CircleCI](https://circleci.com/gh/iduane/quantumsyc.svg?style=svg)](https://circleci.com/gh/iduane/quantumsyc) [![NPM Version](https://img.shields.io/npm/v/quantumsync.svg)](https://www.npmjs.com/package/quantumsync) [![node](https://img.shields.io/node/v/quantumsync.svg)]() [![DUB](https://img.shields.io/dub/l/vibe-d.svg)]()
 
 ## 安装
 
