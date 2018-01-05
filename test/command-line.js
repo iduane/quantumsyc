@@ -237,6 +237,7 @@ describe('Command Line', () => {
     fs.writeFileSync(path.join(serverFolder, '.quantumsync/quantumsync.config.json'), `{"port": ${port}}`);
     fs.writeFileSync(path.join(clientFolder, '.quantumsync/quantumsync.config.json'), `{"port": ${port}}`);
     await startClientAndServer();
+    await utils.sleep(1000);
     expect(log.indexOf('' + port)).to.gte(0);
   }).timeout(10000);
 })
