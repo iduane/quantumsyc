@@ -169,12 +169,15 @@ describe('Command Line', () => {
 
   it ('should re-connnect server if server stop after client connected', async () => {
     await startClientAndServer();
+    utils.sleep(2000);
     kill(server);
     await utils.sleep(1000);
     server = await startServer();
-    await utils.sleep(4000);
-    expect(log.indexOf('reconnected')).to.gte(0);
-  }).timeout(10000);
+    while (log.indexOf('reconnected') < 0) {
+      await utils.sleep(1000);
+    }
+    expect(true).to.true;
+  }).timeout(20000);
 
   it ('should only allow one client per one server', async () => {
     await startClientAndServer();
