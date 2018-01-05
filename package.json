@@ -7,7 +7,9 @@
     "test": "nyc mocha",
     "start": "node ./src/index.js",
     "build": "./build.sh",
-    "build-lib": "babel src --out-dir lib"
+    "build-lib": "babel src --out-dir lib",
+    "build-check": "node ./check-build.js",
+    "prepush": "npm run build && npm run build-check && npm test"
   },
   "repository": {
     "type": "git",
@@ -22,6 +24,7 @@
   "dependencies": {
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
+    "chalk": "^2.3.0",
     "commander": "^2.12.2",
     "configstore": "^3.1.1",
     "deepmerge": "^2.0.1",
@@ -46,6 +49,8 @@
     "babel-core": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "chai": "^4.1.2",
+    "git-state": "^4.0.0",
+    "husky": "^0.14.3",
     "mocha": "^4.0.1",
     "nyc": "^11.4.1",
     "sinon": "^4.1.3"
