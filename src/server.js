@@ -116,7 +116,9 @@ module.exports = class Client extends Vehicle {
     });
     try {
       console.log('[QuantumSync] handshake sync start');
+      console.log('[QuantumSync] ' + this.name + ' preparing server file list digest');
       const serverDigest = await checksum(this.folder);
+      console.log('[QuantumSync] ' + this.name + ' send server file list digest');
       if (this.socket) this.socket.emit('handshake-digest', serverDigest);
     } catch (e) {
       console.error('[QuantumSync] handshake sync meet eror' + e);

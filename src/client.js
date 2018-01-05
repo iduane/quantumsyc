@@ -101,7 +101,9 @@ module.exports = class Client extends Vehicle {
 
   async syncShake() {
     if (!this._handshakeSyncDone && this._remoteDigest) {
+      console.log('[QuantumSync] ' + this.name + ' preparing local file list digest');
       const localDigest = await checksum(this.folder);
+      console.log('[QuantumSync] ' + this.name + ' compare file list digest, and sync difference');
       await handshakeSync(this, localDigest, this._remoteDigest);
       if (this.socket) this.socket.emit('client-handshake-done');
     }
