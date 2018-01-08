@@ -295,10 +295,10 @@ module.exports = class Vehicle {
       md5.update(patchedData);
       const localDigest = md5.digest('hex');
       if (localDigest === digest) {
-        if (this.socket) this.socket.emit('text-file-diff-accept', relPath);
         console.log('[QuantumSync] ' + this.name +  ' accept file changes for: ' + relPath);
         await this.writeFile(fullPath, patchedData); 
         accept = true;     
+        if (this.socket) this.socket.emit('text-file-diff-accept', relPath);
       }
     }
 
