@@ -1,5 +1,5 @@
 const { Buffer } = require('buffer');
-const fs = require('fs');
+const fs = require('graceful-fs');
 const path = require('path');
 const rimraf = require('rimraf');
 const { setTimeout } = require('timers');

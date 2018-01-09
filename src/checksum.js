@@ -1,6 +1,6 @@
 const { Client } = require('fb-watchman');
 const path = require('path');
-const fs = require('fs');
+const fs = require('graceful-fs');
 const crypto = require('crypto');
 const ignore = require('ignore');
 const utils = require('./utils');
