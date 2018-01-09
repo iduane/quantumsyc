@@ -45,7 +45,7 @@ module.exports = class ConflictResolve {
       // console.log('[QuantumSync] ' + logName + ' ignore loopback for ' + relPath);
     }
 
-    for (let relPath in changeMap.keys()) {
+    for (let relPath of changeMap.keys()) {
       const cacheItem = cache.get(relPath);
       if (cacheItem) {
         if (cacheItem.type === 'file') {
