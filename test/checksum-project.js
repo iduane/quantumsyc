@@ -37,11 +37,13 @@ describe('Checksum Folder', () => {
       }
     }
     expect(count).to.eq(8);
+    expect(digest1['dir1/dir12/file1120.txt']).to.be.exist;
 
     const changedFilePath = upath.normalize(path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1120.txt')));
-    const notChangedFilePath =upath.normalize( path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1121.txt')));
+    const notChangedFilePath = upath.normalize( path.relative(testFolder, path.resolve(testFolder, 'dir1/dir12/file1121.txt')));
+    await utils.sleep(1000);
     fs.writeFileSync(path.resolve(testFolder, changedFilePath), 'file1120 content changed');
-
+    await utils.sleep(1000);
     const digest2 = await checksum(testFolder);
     count = 0;
     for (let key in digest2) {
@@ -53,7 +55,7 @@ describe('Checksum Folder', () => {
 
     expect(digest1[changedFilePath].digest).not.to.eq(digest2[changedFilePath].digest)
     expect(digest1[notChangedFilePath].digest).to.eq(digest2[notChangedFilePath].digest)
-  })
+  }).timeout(5000)
 
   it ('should skip ignore files checksum', async () => {
     rimraf.sync(testFolder);

@@ -403,43 +403,41 @@ module.exports = class Vehicle {
 
   async writeFile(path, buffer) {
     console.log('[QuantumSync] ' + this.name + ' write file to ' + path);
-    
-    try {
-      await utils.writeFile(path, buffer);
-    } catch (e) {
-      console.log('[QuantumSync] write file to ' + path + ' fail, ' + e);
-    }
     this.confictResolver.updateCache(path, {
       status: 'changed',
       data: buffer,
       type: 'file'
     });
+    try {
+      await utils.writeFile(path, buffer);
+    } catch (e) {
+      console.log('[QuantumSync] write file to ' + path + ' fail, ' + e);
+    }
   }
 
   async deleteFile(path) {
     console.log('[QuantumSync] ' + this.name + ' delete file ' + path);
-
-    await utils.deleteFile(path);
     this.confictResolver.updateCache(path, {
       status: 'deleted',
       type: 'file',
     });
+    await utils.deleteFile(path);
   }
 
   async addFolder(path) {
-    await utils.addFolderP(path);
     this.confictResolver.updateCache(path, {
       status: 'changed',
       type: 'folder',
     });
+    await utils.addFolderP(path);
   }
 
   async deleteFolder(path) {
-    await utils.deleteFolderP(path);
     this.confictResolver.updateCache(path, {
       status: 'deleted',
       type: 'folder',
     });
+    await utils.deleteFolderP(path);
   }
 
   terminate() {
