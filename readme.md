@@ -74,4 +74,6 @@ QuantumSync 默认读取监控目录下 .quantumsync/quantumsync.config.json 作
 
 5. secret - 密码混淆随机字符串，建议修改。任意 > 0 长度字符串即可。
 
+## 常见问题
 
+1. Ubuntu 上文件打开数量限制 https://github.com/facebook/watchman/issues/163
