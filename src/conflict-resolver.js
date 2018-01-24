@@ -38,7 +38,7 @@ module.exports = class ConflictResolve {
     }
   }
 
-  async commitChanges() {    
+  commitChanges() {    
     function ignoreLoopback(relPath) {
       changeMap.del(relPath);
       cache.del(relPath);
@@ -51,8 +51,11 @@ module.exports = class ConflictResolve {
         if (cacheItem.type === 'file') {
           if (cacheItem.status === 'changed' && cacheItem.data) {
             const fullPath = path.resolve(watchedPath, relPath);
-            const fileExist = await utils.exitsResource(fullPath)
-            const localData = await utils.readFile(fullPath);
+            const fileExist = fs.existsSync(fullPath);
+            let localData;
+            if (fileExist) {
+              localData = fs.readFileSync(fullPath);
+            }
             if (!fileExist || cacheItem.data.equals(localData)) {
               // console.log('[QuantumSync] ' + logName + ' ignore loopback for ' + relPath);
               ignoreLoopback(relPath);

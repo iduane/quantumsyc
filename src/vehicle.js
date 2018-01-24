@@ -86,7 +86,7 @@ module.exports = class Vehicle {
     if (!this.isBusy() || !this.isLocked()) {
       this.clearDelayDispatch();
       this.setBusy(true);
-      const changes = await this.confictResolver.commitChanges();
+      const changes = this.confictResolver.commitChanges();
       this.confictResolver.emptyChanges();
       if (changes.length > 0) {
         const locked = await this.setTargetLock();

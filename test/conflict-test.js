@@ -102,7 +102,7 @@ describe('Conflict', function() {
     expect(clientContent).to.eq(serverContent);
   });
 
-  it ('should hanle two way conflict', async () => {
+  it ('should handle two way conflict', async () => {
     let size = 100, clientContent, serverContent,
       lastClientOp, lastServerOp, lastValue = 0, lastOp;
     for (let i = 0; i < size; i++) {

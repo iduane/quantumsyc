@@ -10,9 +10,10 @@ const utils = require('../src/utils');
 const testFolder = path.join(__dirname, 'temp/checksum-folder');
 
 describe('Checksum Folder', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     rimraf.sync(testFolder);
     mkdirp.sync(path.resolve(testFolder))
+    await utils.sleep(500);
   })
   
   afterEach(() => {
