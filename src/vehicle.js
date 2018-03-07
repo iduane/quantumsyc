@@ -242,7 +242,7 @@ module.exports = class Vehicle {
         console.log('[QuantumSync] ' + this.name +  ' send sync file request for: ' + relPath);
         this.stub.send({ name: relPath, path: fullPath });
         this.stub.on('send.success', () => {
-          this.waitReceipt(relPath, resolve);
+          this.waitReceipt(relPath, resolve, fileState.size);
         });
       } else {
         resolve();
@@ -337,11 +337,11 @@ module.exports = class Vehicle {
     }
   }
 
-  waitReceipt(relPath, resolve) {
+  waitReceipt(relPath, resolve, fileSize) {
     if (this._receiptWaitingMap[relPath]) {
       this._receiptWaitingMap[relPath].resolve();
     }
-    this._receiptWaitingMap[relPath] = { resolve, time: +(new Date()) };
+    this._receiptWaitingMap[relPath] = { resolve, time: +(new Date()) , fileSize };
   }
 
   checkReceiptWaintingMap() {
@@ -355,9 +355,14 @@ module.exports = class Vehicle {
   checkResolverMap(map) {
     const currTime = +(new Date());
     for (let relPath in map) {
-      if (map[relPath] && (currTime - map[relPath]) > 1000 * 10) {
-        map[relPath].resolve();
-        delete map[relPath];
+      const meta = map[relPath];
+      if (meta && meta.time) {
+        const timeout = Math.max((meta.fileSize || 0) / 1024 * 10, 1000 * 30);
+
+        if ((currTime - meta.time) > timeout) {
+          meta.resolve();
+          delete map[relPath];
+        }
       }
     }
   }
