@@ -232,7 +232,7 @@ module.exports = class Vehicle {
       }
       const fileData = await utils.readFile(fullPath);
       const fileState = await utils.lstatResource(fullPath);
-      const useDiff = fileState.size > 10240 && !isBinaryFile.sync(fileData, fileState.size);
+      const useDiff = fileState.size < 1024 * 1024 * 50 && fileState.size > 1024 * 10 && !isBinaryFile.sync(fileData, fileState.size);
 
       let isTextDiffAccepted = false;
       if (useDiff) {
