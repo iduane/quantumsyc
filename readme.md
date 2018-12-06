@@ -20,7 +20,7 @@ QuantumSync 用于实现两台电脑之间文件夹的自动双向同步，支�
     cd watchman
     git checkout v4.9.0  # the latest stable release
     ./autogen.sh
-    ./configure --without-python --without-pcre
+    ./configure --without-python --without-pcre --enable-lenient
     make
     sudo make install
     ```
