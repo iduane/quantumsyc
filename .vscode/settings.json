@@ -5,8 +5,6 @@
     "**/.hg": true,
     "**/CVS": true,
     "**/.DS_Store": true,
-    "**/node_modules": true,
     "**/.history": true,
-    "**/lib": true
   }
 }
