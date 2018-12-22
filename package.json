@@ -40,7 +40,9 @@
     "mkdirp": "^0.5.1",
     "rimraf": "^2.6.2",
     "socket.io": "^2.2.0",
-    "upath": "^1.1.0"
+    "upath": "^1.1.0",
+    "lodash": ">=4.17.5",
+    "randomatic": ">=3.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.2.2",
